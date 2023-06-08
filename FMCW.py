@@ -255,6 +255,7 @@ class FMCW():
 
 f = FMCW()
 #f.general_sweptonde()
-f.get_data()
-f.make_tf()
-f.make_td()
+f.pandr()
+#f.get_data()
+#f.make_tf()
+#f.make_td()
