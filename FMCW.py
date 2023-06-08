@@ -355,8 +355,8 @@ class FMCW():
 
 
 f = FMCW()
-#f.general_sweptonde()
-#f.pandr()
+f.general_sweptonde()
+f.pandr()
 f.get_data('record.wav')
 f.get_refer_data()
 f.make_tf()
