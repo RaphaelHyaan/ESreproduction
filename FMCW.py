@@ -36,12 +36,20 @@ class FMCW():
         self.doc_frame_nums =  0                     #从文件获得帧数
         self.doc_wave = np.ones(0)                   #从文件获得的声音数组
 
+        self.doc_refer_wave = np.ones(0)             #参考波
+        
+
         #   信号处理
         self.axe_times = np.ones(0)             #时间轴
         self.axe_freq = np.ones(0)              #频率轴
         self.axe_distance = np.ones(0)          #距离轴
+        self.refer_table = np.ones((0,0))       #参考表
         self.tftable = np.ones((0,0))           #时频表
         self.tdtable = np.ones((0,0))           #时间距离表
+        self.dtdtable = np.ones((0,0))          #差分时间距离表
+        self.axe_freq_pas = 0                   #频率变化步长
+
+        self.doc_refer_diri = self.axe_times%0.12*(self.haute_frequency-self.bas_frequency)+self.bas_frequency
 
     # 信号生成和处理 
     def general_sweptonde(self,in_path = "test.wav"):
@@ -140,7 +148,7 @@ class FMCW():
 
         pass
 
-    #数据处理
+    #获得波
     def get_data(self,wavfile = 'test.wav'):
         #获取数据
         wf=wave.open(wavfile,"rb")              #打开wav
@@ -154,7 +162,24 @@ class FMCW():
                                                 #读取完整的帧数据到str_data中，这是一个string类型的数据
         str_data = wf.readframes(self.doc_frame_nums)
         self.doc_wave = np.frombuffer(str_data, dtype=np.short)
-        wf.close()                              #关闭wave        
+        wf.close()                              #关闭wave       
+
+    #获得参考波
+    def get_refer_data(self,wavfile = 'test.wav'):
+        #获取数据
+        wf=wave.open(wavfile,"rb")              #打开wav
+        p = pyaudio.PyAudio()                   #创建PyAudio对象
+        params = wf.getparams()                 #参数获取
+        nchannels, sampwidth, self.doc_frame_rate, self.doc_frame_nums = params[:4]
+        stream = p.open(format=p.get_format_from_width(sampwidth),
+                        channels=nchannels, 
+                        rate=self.doc_frame_rate,
+                        output=True)            #创建输出流
+                                                #读取完整的帧数据到str_data中，这是一个string类型的数据
+        str_data = wf.readframes(self.doc_frame_nums)
+        self.doc_refer_wave= np.frombuffer(str_data, dtype=np.short)
+        f,t,self.refer_table = signal.spectrogram(self.doc_wave,self.doc_frame_rate,nperseg = 2560,noverlap=1280,nfft = 10000)
+        wf.close()                              #关闭wave   
 
     def draw_time(self):
         #时序绘图
@@ -208,12 +233,19 @@ class FMCW():
     '''
 
     def make_tf(self):
-        f,t,z = signal.stft(self.doc_wave,self.doc_frame_rate,nperseg = 800,noverlap=250,nfft = 2000)
-        #plt.pcolormesh(t,f,abs(z))
+        #f,t,z = signal.stft(self.doc_wave,self.doc_frame_rate,nperseg = 256,noverlap=128,nfft = 256)
+        f,t,z = signal.spectrogram(self.doc_wave,self.doc_frame_rate,nperseg = 2560,noverlap=1280,nfft = 10000)
+        # plt.pcolormesh(t,f,abs(z))
         #plt.show()
+        z_db = 10*np.log10(np.abs(z))
+        #plt.specgram(self.doc_wave,Fs = self.doc_frame_rate)
+        #plt.show()
+        self.show_table(z_db,t,f)
         self.axe_freq =f
         self.axe_times = t
         self.tftable = z
+
+        self.axe_freq_pas = (np.max(f)-np.min(f))/np.size(f)
 
     def test_tf(self):
         times = np.linspace(0,self.swept_nums/self.sample_rate,self.swept_nums)
@@ -228,34 +260,104 @@ class FMCW():
 
     def make_td(self,vit = 343):
         tftable = np.abs(self.tftable)
-        max_distance =0.1
+        max_distance =5
         shape = np.shape(tftable)
         self.axe_distance = np.linspace(0,max_distance,shape[0])
         tdtable = np.zeros(shape)
+
+        a = np.max(tftable)
         
         for i in range(shape[1]):
-            f_out = self.axe_times[i]%0.12*(self.haute_frequency-self.bas_frequency)+self.bas_frequency
-            for j in range(shape[0]):
-                if tftable[j][i]>=3000:
+            f_out = self.axe_freq(np.argmax(self.doc_refer_wave[:,i+200]))
+            for j in range(shape[0]//2,shape[0]):
+                if tftable[j][i]>=0 and self.axe_freq[j]<=f_out:
                     distance = self.cal_distance(f_out,self.axe_freq[j])
+                    forc = tftable[j][i]
+                    freq = self.axe_freq[j]
                     if np.abs(distance) <= max_distance:
                         index = int(distance/max_distance*(shape[0]//2))
-                        tdtable[index][i]+=tftable[j][i]
+                        tdtable[index][i]+=tftable[j][i]/10
         
-        plt.pcolormesh(self.axe_times,self.axe_distance,tdtable)
-        plt.show()
+        #self.show_table(tdtable,self.axe_times,self.axe_distance)
         self.tdtable = tdtable        
 
+    def make_td_d2f(self,vit = 343):
+        #另一种埖表方式
+        tftable = np.abs(self.tftable)
+        max_distance = 1
+        shape = np.shape(tftable)
+        self.axe_distance = np.linspace(0,max_distance,shape[0])
+        tdtable = np.zeros(shape)
+
+        a = np.max(tftable)
+        
+        for i in range(shape[1]):
+            f_out = self.axe_freq[np.argmax(self.refer_table[:,i])]
+            for j in range(shape[0]):
+                distance = self.axe_distance[j]
+                tdtable[j][i] += self.cal_forfreq(i,f_out,distance)      
+        self.show_table(10*np.log10(tdtable),self.axe_times,self.axe_distance)
+        self.tdtable = tdtable
+        for i in range(shape[1]):
+            tdtable[:,i] -= np.mean(tdtable[:,i-1])
+            np.maximum(tdtable[:,i],0.0001)
+        self.dtdtable = tdtable
+        self.show_table(10*np.log10(tdtable),self.axe_times,self.axe_distance)
+        return 0
+
+    def show_table(self,table,axe_x,axe_y):
+        plt.pcolormesh(axe_x,axe_y,table,vmin = 0,vmax = 20)
+        plt.show()
 
     def cal_distance(self,f_out,f_rec,vit = 343):
         #f_out:此时的输出信号频率，f_rec:此时的输入信号频率
         delta_f = np.min([f_out-f_rec,self.haute_frequency-f_rec+f_out-self.bas_frequency])
         pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
-        return delta_f/pente_f
+        return delta_f/pente_f*vit/2
+    
+    def cal_forfreq(self,i,f_out,distance,vit = 343, lap = 0.01):
+        #计算在当前输出信号下，达到distance+-lap*distance所需的频率，并计算对应强度和
+        pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
+        fmax = f_out-(distance-lap)*pente_f*2/vit
+        fmin = f_out-(distance+lap)*pente_f*2/vit
+        pas = self.axe_freq
+        if fmax>self.bas_frequency and fmin>self.bas_frequency:
+            n_fmax = fmax//self.axe_freq_pas
+            n_fmin = fmin//self.axe_freq_pas
+            n_fmax = n_fmax.astype(int)
+            n_fmin = n_fmin.astype(int)
+            line = self.tftable[n_fmin:n_fmax,i]
+            return np.sum(line)
+        elif fmax>self.bas_frequency and fmin<self.bas_frequency:
+            fmin = self.haute_frequency-self.bas_frequency+fmin
+            n_fmax = fmax//self.axe_freq_pas
+            n_fmin = fmin//self.axe_freq_pas
+            n_bas = self.bas_frequency//self.axe_freq_pas
+            n_haute = self.haute_frequency//self.axe_freq_pas
+            n_fmax = n_fmax.astype(int)
+            n_fmin = n_fmin.astype(int)
+            n_haute = n_haute.astype(int)
+            n_bas = n_bas.astype(int)
+            line1 = self.tftable[n_bas:n_fmax,i]
+            line2 = self.tftable[n_fmin:n_haute,i]
+            return np.sum(line1)+np.sum(line2)
+        elif fmax<self.bas_frequency and fmin<self.bas_frequency:
+            fmin = self.haute_frequency-self.bas_frequency+fmin
+            fmax = self.haute_frequency-self.bas_frequency+fmax
+            n_fmax = fmax//self.axe_freq_pas
+            n_fmin = fmin//self.axe_freq_pas
+            n_fmax = n_fmax.astype(int)
+            n_fmin = n_fmin.astype(int)
+            line = self.tftable[n_fmin:n_fmax,i]
+            return np.sum(line)
+        else:
+            return 0
+
 
 f = FMCW()
 #f.general_sweptonde()
-f.pandr()
-#f.get_data()
-#f.make_tf()
-#f.make_td()
+#f.pandr()
+f.get_data('record.wav')
+f.get_refer_data()
+f.make_tf()
+f.make_td_d2f()
