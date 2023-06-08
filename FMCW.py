@@ -208,9 +208,9 @@ class FMCW():
     '''
 
     def make_tf(self):
-        f,t,z = signal.stft(self.doc_wave,self.doc_frame_rate,nperseg = 50,noverlap=40,nfft = 200)
-        plt.pcolormesh(t,f,abs(z))
-        plt.show()
+        f,t,z = signal.stft(self.doc_wave,self.doc_frame_rate,nperseg = 800,noverlap=250,nfft = 2000)
+        #plt.pcolormesh(t,f,abs(z))
+        #plt.show()
         self.axe_freq =f
         self.axe_times = t
         self.tftable = z
@@ -226,14 +226,35 @@ class FMCW():
         plt.show()
         return 0
 
-    def make_td(self):
-        pass
+    def make_td(self,vit = 343):
+        tftable = np.abs(self.tftable)
+        max_distance =0.1
+        shape = np.shape(tftable)
+        self.axe_distance = np.linspace(0,max_distance,shape[0])
+        tdtable = np.zeros(shape)
+        
+        for i in range(shape[1]):
+            f_out = self.axe_times[i]%0.12*(self.haute_frequency-self.bas_frequency)+self.bas_frequency
+            for j in range(shape[0]):
+                if tftable[j][i]>=3000:
+                    distance = self.cal_distance(f_out,self.axe_freq[j])
+                    if np.abs(distance) <= max_distance:
+                        index = int(distance/max_distance*(shape[0]//2))
+                        tdtable[index][i]+=tftable[j][i]
+        
+        plt.pcolormesh(self.axe_times,self.axe_distance,tdtable)
+        plt.show()
+        self.tdtable = tdtable        
 
-    def cal_distance(self):
-        pass
 
+    def cal_distance(self,f_out,f_rec,vit = 343):
+        #f_out:此时的输出信号频率，f_rec:此时的输入信号频率
+        delta_f = np.min([f_out-f_rec,self.haute_frequency-f_rec+f_out-self.bas_frequency])
+        pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
+        return delta_f/pente_f
 
 f = FMCW()
-f.general_sweptonde()
+#f.general_sweptonde()
 f.get_data()
 f.make_tf()
+f.make_td()
