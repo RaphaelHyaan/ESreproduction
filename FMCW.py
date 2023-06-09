@@ -52,7 +52,7 @@ class FMCW():
 
 
         #短时傅里叶变换
-        self.nperseg = 1000
+        self.nperseg = self.swept_nums
         self.noverlap= 200
         self.nfft = 5120
 
@@ -253,6 +253,14 @@ class FMCW():
         self.tftable = z
 
         self.axe_freq_pas = (np.max(f)-np.min(f))/np.size(f)
+    '''
+    def make_ccline(self):
+        line = np.zeros(1201)
+        a = self.doc_wave[]
+        for i in range(-600,600):
+            
+            b = self.doc_refer_wave
+            line[i+600] = correlate()'''
 
     def make_td_d2f(self,vit = 343):
         #另一种埖表方式
@@ -349,6 +357,7 @@ class FMCW():
             return np.sum(line)
         else:
             return 0
+        
     def record_gene(self):
         self.general_sweptonde()
         input('信号生成完毕，输入任何键开始测试')
