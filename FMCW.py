@@ -18,8 +18,8 @@ class FMCW():
         self.sample_nums = int(self.sample_last*self.sample_rate)                    #总采样次数
         ##  扫频
         self.bas_frequency = 12000                                  #最低频率
-        self.haute_frequency = 20000                                #最高频率
-        self.swept_last = 0.12                                     #每次扫频持续时间
+        self.haute_frequency = 16000                                #最高频率
+        self.swept_last = 0.012                                     #每次扫频持续时间
         self.swept_nums = int(self.swept_last*self.sample_rate)     #每次扫频采样次数
 
 
@@ -52,9 +52,9 @@ class FMCW():
 
 
         #短时傅里叶变换
-        self.nperseg = 256
-        self.noverlap=128
-        self.nfft = 8192
+        self.nperseg = 64
+        self.noverlap= 32
+        self.nfft = 512
 
         self.doc_refer_diri = self.axe_times%0.12*(self.haute_frequency-self.bas_frequency)+self.bas_frequency
 
@@ -293,27 +293,29 @@ class FMCW():
         tftable = np.abs(self.tftable)
         max_distance = 1
         shape = np.shape(tftable)
-        self.axe_distance = np.linspace(0,max_distance,shape[0])
+        self.axe_distance = np.linspace(-max_distance,max_distance,shape[0])
         tdtable = np.zeros(shape)
 
         a = np.max(tftable)
+        forc = 0
         
         for i in range(shape[1]):
             f_out = self.axe_freq[np.argmax(self.refer_table[:,i])]
             for j in range(shape[0]):
                 distance = self.axe_distance[j]
-                tdtable[j][i] += self.cal_forfreq(i,f_out,distance)      
+                forc += self.cal_forfreq(i,f_out,distance)
+                tdtable[j][i] += forc
         self.show_table(10*np.log10(tdtable),self.axe_times,self.axe_distance)
         self.tdtable = tdtable
         for i in range(shape[1]):
-            tdtable[:,i] -= np.mean(tdtable[:,i-1])
+            tdtable[:,i] -= tdtable[:,i-1]
             np.maximum(tdtable[:,i],0.0001)
         self.dtdtable = tdtable
-        self.show_table(10*np.log10(tdtable),self.axe_times,self.axe_distance)
+        self.show_table(10*np.log10(tdtable),self.axe_times,self.axe_distance,-10,100)
         return 0
 
-    def show_table(self,table,axe_x,axe_y):
-        plt.pcolormesh(axe_x,axe_y,table,vmin = 0,vmax = 20)
+    def show_table(self,table,axe_x,axe_y,vmin = 0,vmax = 20):
+        plt.pcolormesh(axe_x,axe_y,table)
         plt.show()
 
     def cal_distance(self,f_out,f_rec,vit = 343):
@@ -322,7 +324,7 @@ class FMCW():
         pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
         return delta_f/pente_f*vit/2
     
-    def cal_forfreq(self,i,f_out,distance,vit = 343, lap = 0.02):
+    def cal_forfreq(self,i,f_out,distance,vit = 343, lap = 0.05):
         #计算在当前输出信号下，达到distance+-lap*distance所需的频率，并计算对应强度和
         pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
         fmax = f_out-(distance-lap)*pente_f*2/vit
@@ -357,6 +359,28 @@ class FMCW():
             n_fmin = n_fmin.astype(int)
             line = self.tftable[n_fmin:n_fmax,i]
             return np.sum(line)
+        elif fmax>self.haute_frequency and fmin<self.haute_frequency:
+            fmax = self.bas_frequency-(self.haute_frequency-fmax)
+            n_fmax = fmax//self.axe_freq_pas
+            n_fmin = fmin//self.axe_freq_pas
+            n_bas = self.bas_frequency//self.axe_freq_pas
+            n_haute = self.haute_frequency//self.axe_freq_pas
+            n_fmax = n_fmax.astype(int)
+            n_fmin = n_fmin.astype(int)
+            n_haute = n_haute.astype(int)
+            n_bas = n_bas.astype(int)
+            line1 = self.tftable[n_bas:n_fmax,i]
+            line2 = self.tftable[n_fmin:n_haute,i]
+            return np.sum(line1)+np.sum(line2)
+        elif fmax>self.haute_frequency and fmin>self.haute_frequency:
+            fmin = self.bas_frequency-(self.haute_frequency-fmin)
+            fmax = self.bas_frequency-(self.haute_frequency-fmax)
+            n_fmax = fmax//self.axe_freq_pas
+            n_fmin = fmin//self.axe_freq_pas
+            n_fmax = n_fmax.astype(int)
+            n_fmin = n_fmin.astype(int)
+            line = self.tftable[n_fmin:n_fmax,i]
+            return np.sum(line)
         else:
             return 0
     def record_gene(self):
@@ -379,5 +403,8 @@ class FMCW():
     
 
 f = FMCW()
-f.record_gene()
-f.record_nogene()
+f.general_sweptonde()
+f.get_data('record.wav')
+f.get_refer_data()
+f.make_tf()
+f.make_td_d2f()
