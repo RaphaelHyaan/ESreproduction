@@ -378,17 +378,15 @@ class FMCW():
         for i in range(np.shape(z)[1]):
             for j in range(np.shape(z)[0]):
                 z[j,i] -= z[j,i-1]
-
         z = 10*np.log10(abs(z))
         plt.pcolormesh(t,f[f<2000],z[f<2000,:])
         plt.show()
         return 0
 f = FMCW()
-f.record_gene()
-'''
+#f.record_gene()
+
 f.get_data('record.wav')
 f.filtre_test()
 f.get_refer_data()
 f.make_tf()
 f.make_td_d2f()
-'''
