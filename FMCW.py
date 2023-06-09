@@ -14,7 +14,7 @@ class FMCW():
         ##  采样
         self.sample_rate = 44100.0                   #每秒采样次数
         self.amplitude = 16000                       #振幅，以32767为上限
-        self.sample_last = 2                         #采样时间
+        self.sample_last = 10                         #采样时间
         self.sample_nums = int(self.sample_last*self.sample_rate)                    #总采样次数
         ##  扫频
         self.bas_frequency = 12000                                  #最低频率
@@ -259,7 +259,7 @@ class FMCW():
         tftable = np.abs(self.tftable)
         max_distance = 1
         shape = np.shape(tftable)
-        self.axe_distance = np.linspace(-max_distance,max_distance,shape[0]/10)
+        self.axe_distance = np.linspace(-max_distance,max_distance,shape[0])
         tdtable = np.zeros(shape)
 
         a = np.max(tftable)
@@ -273,7 +273,7 @@ class FMCW():
                 tdtable[j][i] += forc
         self.show_table(10*np.log10(tdtable),self.axe_times,self.axe_distance)
         self.tdtable = tdtable
-        for i in range(shape[1]/10):
+        for i in range(shape[1]):
             tdtable[:,i] -= tdtable[:,i-1]
             np.maximum(tdtable[:,i],0.0001)
         self.dtdtable = tdtable
@@ -384,9 +384,11 @@ class FMCW():
         plt.show()
         return 0
 f = FMCW()
-#f.record_gene()
+f.record_gene()
+'''
 f.get_data('record.wav')
 f.filtre_test()
 f.get_refer_data()
 f.make_tf()
 f.make_td_d2f()
+'''
