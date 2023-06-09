@@ -52,9 +52,9 @@ class FMCW():
 
 
         #短时傅里叶变换
-        self.nperseg = 64
-        self.noverlap= 32
-        self.nfft = 512
+        self.nperseg = 1000
+        self.noverlap= 200
+        self.nfft = 5120
 
         self.doc_refer_diri = self.axe_times%0.12*(self.haute_frequency-self.bas_frequency)+self.bas_frequency
 
@@ -254,46 +254,12 @@ class FMCW():
 
         self.axe_freq_pas = (np.max(f)-np.min(f))/np.size(f)
 
-    def test_tf(self):
-        times = np.linspace(0,self.swept_nums/self.sample_rate,self.swept_nums)
-        sine_wave_1 = signal.chirp(times,f0 = self.bas_frequency,t1 = self.swept_nums/self.sample_rate,f1 = self.haute_frequency,method = 'linear')
-        sine_wave = np.ones(0)
-        for i in range(0,self.sample_nums,self.swept_nums):
-            sine_wave = np.concatenate((sine_wave,sine_wave_1))
-        f,t,z = signal.stft(sine_wave,self.sample_rate,nperseg = 50,noverlap=40,nfft = 200)
-        plt.pcolormesh(t,f,abs(z))
-        plt.show()
-        return 0
-
-    def make_td(self,vit = 343):
-        tftable = np.abs(self.tftable)
-        max_distance =5
-        shape = np.shape(tftable)
-        self.axe_distance = np.linspace(0,max_distance,shape[0])
-        tdtable = np.zeros(shape)
-
-        a = np.max(tftable)
-        
-        for i in range(shape[1]):
-            f_out = self.axe_freq(np.argmax(self.doc_refer_wave[:,i+200]))
-            for j in range(shape[0]//2,shape[0]):
-                if tftable[j][i]>=0 and self.axe_freq[j]<=f_out:
-                    distance = self.cal_distance(f_out,self.axe_freq[j])
-                    forc = tftable[j][i]
-                    freq = self.axe_freq[j]
-                    if np.abs(distance) <= max_distance:
-                        index = int(distance/max_distance*(shape[0]//2))
-                        tdtable[index][i]+=tftable[j][i]/10
-        
-        #self.show_table(tdtable,self.axe_times,self.axe_distance)
-        self.tdtable = tdtable        
-
     def make_td_d2f(self,vit = 343):
         #另一种埖表方式
         tftable = np.abs(self.tftable)
         max_distance = 1
         shape = np.shape(tftable)
-        self.axe_distance = np.linspace(-max_distance,max_distance,shape[0])
+        self.axe_distance = np.linspace(-max_distance,max_distance,shape[0]/10)
         tdtable = np.zeros(shape)
 
         a = np.max(tftable)
@@ -307,7 +273,7 @@ class FMCW():
                 tdtable[j][i] += forc
         self.show_table(10*np.log10(tdtable),self.axe_times,self.axe_distance)
         self.tdtable = tdtable
-        for i in range(shape[1]):
+        for i in range(shape[1]/10):
             tdtable[:,i] -= tdtable[:,i-1]
             np.maximum(tdtable[:,i],0.0001)
         self.dtdtable = tdtable
@@ -324,7 +290,7 @@ class FMCW():
         pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
         return delta_f/pente_f*vit/2
     
-    def cal_forfreq(self,i,f_out,distance,vit = 343, lap = 0.05):
+    def cal_forfreq(self,i,f_out,distance,vit = 343, lap = 0.005):
         #计算在当前输出信号下，达到distance+-lap*distance所需的频率，并计算对应强度和
         pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
         fmax = f_out-(distance-lap)*pente_f*2/vit
@@ -401,13 +367,26 @@ class FMCW():
         self.make_tf()
         self.make_td_d2f()
     
+    def filtre_test(self):
+        b,a = signal.butter(8,2*1500/self.sample_rate)
+        filtedData = signal.filtfilt(b,a,self.doc_wave)
+        f,t,z = signal.spectrogram(filtedData,self.doc_frame_rate,nperseg = self.nperseg,noverlap=self.noverlap,nfft = self.nfft)
+        #plt.pcolormesh(t,f,10*np.log10(abs(z)))
+        #plt.show()
+        z = abs(z)
 
+        for i in range(np.shape(z)[1]):
+            for j in range(np.shape(z)[0]):
+                z[j,i] -= z[j,i-1]
+
+        z = 10*np.log10(abs(z))
+        plt.pcolormesh(t,f[f<2000],z[f<2000,:])
+        plt.show()
+        return 0
 f = FMCW()
-f.record_gene()
-'''
-f.general_sweptonde()
+#f.record_gene()
 f.get_data('record.wav')
+f.filtre_test()
 f.get_refer_data()
 f.make_tf()
 f.make_td_d2f()
-'''
