@@ -378,8 +378,10 @@ class FMCW():
         for i in range(np.shape(z)[1]):
             for j in range(np.shape(z)[0]):
                 z[j,i] -= z[j,i-1]
+                if z[j,i]<0:
+                    z[j,i] = 0.000001
         z = 10*np.log10(abs(z))
-        plt.pcolormesh(t,f[f<2000],z[f<2000,:])
+        plt.pcolormesh(t,f[f<6000],z[f<6000,:])
         plt.show()
         return 0
 f = FMCW()
