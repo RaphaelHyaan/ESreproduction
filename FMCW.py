@@ -403,8 +403,11 @@ class FMCW():
     
 
 f = FMCW()
+f.record_gene()
+'''
 f.general_sweptonde()
 f.get_data('record.wav')
 f.get_refer_data()
 f.make_tf()
 f.make_td_d2f()
+'''
