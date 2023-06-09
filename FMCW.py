@@ -14,7 +14,8 @@ class FMCW():
         ##  采样
         self.sample_rate = 44100.0                   #每秒采样次数
         self.amplitude = 16000                       #振幅，以32767为上限
-        self.sample_nums = 441000                    #总采样次数
+        self.sample_last = 2                         #采样时间
+        self.sample_nums = int(self.sample_last*self.sample_rate)                    #总采样次数
         ##  扫频
         self.bas_frequency = 12000                                  #最低频率
         self.haute_frequency = 20000                                #最高频率
@@ -48,6 +49,12 @@ class FMCW():
         self.tdtable = np.ones((0,0))           #时间距离表
         self.dtdtable = np.ones((0,0))          #差分时间距离表
         self.axe_freq_pas = 0                   #频率变化步长
+
+
+        #短时傅里叶变换
+        self.nperseg = 256
+        self.noverlap=128
+        self.nfft = 8192
 
         self.doc_refer_diri = self.axe_times%0.12*(self.haute_frequency-self.bas_frequency)+self.bas_frequency
 
@@ -178,7 +185,7 @@ class FMCW():
                                                 #读取完整的帧数据到str_data中，这是一个string类型的数据
         str_data = wf.readframes(self.doc_frame_nums)
         self.doc_refer_wave= np.frombuffer(str_data, dtype=np.short)
-        f,t,self.refer_table = signal.spectrogram(self.doc_wave,self.doc_frame_rate,nperseg = 2560,noverlap=1280,nfft = 10000)
+        f,t,self.refer_table = signal.spectrogram(self.doc_wave,self.doc_frame_rate,nperseg = self.nperseg,noverlap=self.noverlap,nfft = self.nfft)
         wf.close()                              #关闭wave   
 
     def draw_time(self):
@@ -234,7 +241,7 @@ class FMCW():
 
     def make_tf(self):
         #f,t,z = signal.stft(self.doc_wave,self.doc_frame_rate,nperseg = 256,noverlap=128,nfft = 256)
-        f,t,z = signal.spectrogram(self.doc_wave,self.doc_frame_rate,nperseg = 2560,noverlap=1280,nfft = 10000)
+        f,t,z = signal.spectrogram(self.doc_wave,self.doc_frame_rate,nperseg = self.nperseg,noverlap=self.noverlap,nfft = self.nfft)
         # plt.pcolormesh(t,f,abs(z))
         #plt.show()
         z_db = 10*np.log10(np.abs(z))
@@ -315,7 +322,7 @@ class FMCW():
         pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
         return delta_f/pente_f*vit/2
     
-    def cal_forfreq(self,i,f_out,distance,vit = 343, lap = 0.01):
+    def cal_forfreq(self,i,f_out,distance,vit = 343, lap = 0.02):
         #计算在当前输出信号下，达到distance+-lap*distance所需的频率，并计算对应强度和
         pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
         fmax = f_out-(distance-lap)*pente_f*2/vit
@@ -352,12 +359,25 @@ class FMCW():
             return np.sum(line)
         else:
             return 0
+    def record_gene(self):
+        self.general_sweptonde()
+        input('信号生成完毕，输入任何键开始测试')
+        self.pandr()
+        print('测试完毕，请等待结果分析')
+        self.get_data('record.wav')
+        self.get_refer_data()
+        self.make_tf()
+        self.make_td_d2f()
 
+    def record_nogene(self):
+        input('现在开始测试：')
+        self.pandr()
+        print('测试结束，等待结果')
+        self.get_data('record.wav')
+        self.make_tf()
+        self.make_td_d2f()
+    
 
 f = FMCW()
-f.general_sweptonde()
-f.pandr()
-f.get_data('record.wav')
-f.get_refer_data()
-f.make_tf()
-f.make_td_d2f()
+f.record_gene()
+f.record_nogene()
