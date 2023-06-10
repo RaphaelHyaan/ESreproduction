@@ -52,8 +52,8 @@ class FMCW():
 
 
         #短时傅里叶变换
-        self.nperseg = 1000
-        self.noverlap= 200
+        self.nperseg = self.swept_nums*3
+        self.noverlap= self.swept_nums/4
         self.nfft = 5120
 
         self.doc_refer_diri = self.axe_times%0.12*(self.haute_frequency-self.bas_frequency)+self.bas_frequency
@@ -253,6 +253,14 @@ class FMCW():
         self.tftable = z
 
         self.axe_freq_pas = (np.max(f)-np.min(f))/np.size(f)
+    '''
+    def make_ccline(self):
+        line = np.zeros(1201)
+        a = self.doc_wave[]
+        for i in range(-600,600):
+            
+            b = self.doc_refer_wave
+            line[i+600] = correlate()'''
 
     def make_td_d2f(self,vit = 343):
         #另一种埖表方式
@@ -349,6 +357,7 @@ class FMCW():
             return np.sum(line)
         else:
             return 0
+        
     def record_gene(self):
         self.general_sweptonde()
         input('信号生成完毕，输入任何键开始测试')
@@ -367,28 +376,29 @@ class FMCW():
         self.make_tf()
         self.make_td_d2f()
     
-    def filtre_test(self):
-        b,a = signal.butter(8,2*1500/self.sample_rate)
+    def filtre_test(self,c = 343):
+        b,a = signal.butter(8,2*6000/self.sample_rate)
         filtedData = signal.filtfilt(b,a,self.doc_wave)
         f,t,z = signal.spectrogram(filtedData,self.doc_frame_rate,nperseg = self.nperseg,noverlap=self.noverlap,nfft = self.nfft)
         #plt.pcolormesh(t,f,10*np.log10(abs(z)))
         #plt.show()
         z = abs(z)
+        d = c/(2*(self.haute_frequency-self.bas_frequency))*z*self.swept_last
 
-        for i in range(np.shape(z)[1]):
-            for j in range(np.shape(z)[0]):
-                z[j,i] -= z[j,i-1]
-
-        z = 10*np.log10(abs(z))
-        plt.pcolormesh(t,f[f<2000],z[f<2000,:])
+        for i in range(np.shape(d)[1]):
+            for j in range(np.shape(d)[0]):
+                d[j,i] -= d[j,i-1]
+                if d[j,i]<0:
+                    d[j,i] = 0.000001
+        d = 10*np.log10(abs(d))
+        plt.pcolormesh(t,f[f<6000],d[f<6000,:])
         plt.show()
         return 0
 f = FMCW()
-f.record_gene()
-'''
+#f.record_gene()
+
 f.get_data('record.wav')
 f.filtre_test()
 f.get_refer_data()
 f.make_tf()
 f.make_td_d2f()
-'''
