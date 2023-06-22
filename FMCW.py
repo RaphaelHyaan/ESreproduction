@@ -14,11 +14,8 @@ class FMCW():
         ##  采样
         self.sample_rate = 44100.0                   #每秒采样次数
         self.amplitude = 16000                       #振幅，以32767为上限
-        self.sample_last = 10                         #采样时间
-        self.sample_nums = int(self.sample_last*self.sample_rate)                    #总采样次数
+
         ##  扫频
-        self.bas_frequency = 12000                                  #最低频率
-        self.haute_frequency = 16000                                #最高频率
         self.swept_last = 0.012                                     #每次扫频持续时间
         self.chirp_last = int(self.swept_last*self.sample_rate)     #每次扫频采样次数
 
@@ -30,37 +27,22 @@ class FMCW():
         self.chunk = self.chirp_last                 #缓冲区帧数
         self.format = pyaudio.paInt16                #采样位数
         ##  写
-        ### 实现不保存到本地
-        self.outputsignal = bytes()                  #测试音频数据，未实现
+
         ### 保存路径
-        self.path_in = "chirp1.wav"                    #测试音频        
-        self.path_out = "record.wav"                                       #录音音频
+        self.path_in = "chirp_lr.wav"                    #测试音频        
+        self.path_out = "record.wav"                   #录音音频
         ##  读
         self.doc_frame_rate = 0                      #从文件获得帧率
         self.doc_frame_nums =  0                     #从文件获得帧数
-        self.doc_wave = np.ones(0)                   #从文件获得的声音数组
         self.nchannels = 0                           #从文件获取的声道数
 
-        self.doc_refer_wave = np.ones(0)             #参考波
-        
+        self.wave_t = np.ones(0)                    #输出声波
+        self.wave_r = np.ones(0)                    #接收声波
+        self.wave_t_f = np.ones(0)                   #滤波后输出声波
+        self.wave_r_f = np.ones(0)               #滤波后接收声波
 
-        #   信号处理
-        self.axe_times = np.ones(0)             #时间轴
-        self.axe_freq = np.ones(0)              #频率轴
-        self.axe_distance = np.ones(0)          #距离轴
-        self.refer_table = np.ones((0,0))       #参考表
-        self.tftable = np.ones((0,0))           #时频表
-        self.tdtable = np.ones((0,0))           #时间距离表
-        self.dtdtable = np.ones((0,0))          #差分时间距离表
-        self.axe_freq_pas = 0                   #频率变化步长
 
-        #短时傅里叶变换
-        self.nperseg = self.chirp_last
-        self.noverlap= self.chirp_last/4
-        self.nfft = 5120
-
-        self.doc_refer_diri = self.axe_times%0.12*(self.haute_frequency-self.bas_frequency)+self.bas_frequency
-
+    #信号录制
     def pandr(self):
         p = pyaudio.PyAudio()
         stream = p.open(format=p.get_format_from_width(2),
@@ -99,9 +81,10 @@ class FMCW():
                         output=True)            #创建输出流
                                                 #读取完整的帧数据到str_data中，这是一个string类型的数据
         str_data = wf.readframes(self.doc_frame_nums)
-        self.doc_wave = np.fromstring(str_data, dtype=np.short)
-        self.doc_wave = np.reshape(self.doc_wave,[self.doc_frame_nums,self.nchannels])
-        wf.close()                              #关闭wave       
+        wf.close()                              #关闭wave    
+        self.wave_r = np.fromstring(str_data, dtype=np.int16)
+        self.wave_r = np.reshape(self.wave_r,[self.doc_frame_nums,self.nchannels]).astype(np.int64)
+        return self.wave_r
 
     #获得参考波
     def get_refer_data(self):
@@ -117,179 +100,99 @@ class FMCW():
                         output=True)            #创建输出流
                                                 #读取完整的帧数据到str_data中，这是一个string类型的数据
         str_data = wf.readframes(self.doc_frame_nums)
-        self.doc_refer_wave= np.fromstring(str_data, dtype=np.short)
-        self.doc_refer_wave = np.reshape(self.doc_refer_wave,[self.doc_frame_nums,nchannels])
+        self.wave_t= np.fromstring(str_data, dtype=np.int16)
+        self.wave_t = np.reshape(self.wave_t,[self.doc_frame_nums,nchannels]).astype(np.int64)
+        '''        
         plt.figure()
         plt.subplot(2,1,1)
-        plt.specgram(self.doc_refer_wave[:,1],Fs = doc_frame_rate)
+        plt.specgram(self.wave_t[:,1],Fs = doc_frame_rate)
         plt.subplot(2,1,2)
-        plt.specgram(self.doc_refer_wave[:,0],Fs = doc_frame_rate)
-        plt.show()
+        plt.specgram(self.wave_t[:,0],Fs = doc_frame_rate)
+        plt.show()'''
         wf.close()                              #关闭wave   
 
+    #滤波    
+    def filtre_bb(self):
+        fl = self.chirp_l*2/self.doc_frame_rate
+        bl,al = signal.butter(8,fl,'bandpass')
+        fr = self.chirp_r*2/self.doc_frame_rate
+        br,ar = signal.butter(8,fr,'bandpass')
+        self.wave_t_f = np.zeros(np.shape(self.wave_t))
+        self.wave_t_f[:,0] = signal.filtfilt(bl,al,self.wave_t[:,0])
+        self.wave_t_f[:,1] = signal.filtfilt(br,ar,self.wave_t[:,1])
+        size = list(np.shape(self.wave_r))
+        size[1]*=2
+        self.wave_r_f = np.zeros(size)
+        self.wave_r_f[:,0] = signal.filtfilt(bl,al,self.wave_r[:,0])
+        self.wave_r_f[:,1] = signal.filtfilt(br,ar,self.wave_r[:,0])
+        self.wave_r_f[:,2] = signal.filtfilt(bl,al,self.wave_r[:,1])
+        self.wave_r_f[:,3] = signal.filtfilt(br,ar,self.wave_r[:,1])
 
-    def make_tf(self):
-        #f,t,z = signal.stft(self.doc_wave,self.doc_frame_rate,nperseg = 256,noverlap=128,nfft = 256)
-        f,t,z = signal.spectrogram(self.doc_wave[:,1],self.doc_frame_rate,nperseg = self.nperseg,noverlap=self.noverlap,nfft = self.nfft)
-        # plt.pcolormesh(t,f,abs(z))
-        #plt.show()
-        z_db = 10*np.log10(np.abs(z))
+        '''
         plt.figure()
-        plt.subplot(2,1,1)
-        plt.specgram(self.doc_wave[:,1],Fs = self.doc_frame_rate)
-        plt.subplot(2,1,2)
-        plt.specgram(self.doc_wave[:,0],Fs = self.doc_frame_rate)
-        plt.show()
-        self.show_table(z_db,t,f)
-        self.axe_freq =f
-        self.axe_times = t
-        self.tftable = z
-
-        self.axe_freq_pas = (np.max(f)-np.min(f))/np.size(f)
-
-    def make_td_d2f(self,vit = 343):
-        #另一种埖表方式
-        tftable = np.abs(self.tftable)
-        max_distance = 1
-        shape = np.shape(tftable)
-        self.axe_distance = np.linspace(-max_distance,max_distance,shape[0])
-        tdtable = np.zeros(shape)
-
-        a = np.max(tftable)
-        forc = 0
-        
-        for i in range(shape[1]):
-            f_out = self.axe_freq[np.argmax(self.refer_table[:,i])]
-            for j in range(shape[0]):
-                distance = self.axe_distance[j]
-                forc += self.cal_forfreq(i,f_out,distance)
-                tdtable[j][i] += forc
-        self.show_table(10*np.log10(tdtable),self.axe_times,self.axe_distance)
-        self.tdtable = tdtable
-        for i in range(shape[1]):
-            tdtable[:,i] -= tdtable[:,i-1]
-            np.maximum(tdtable[:,i],0.0001)
-        self.dtdtable = tdtable
-        self.show_table(10*np.log10(tdtable),self.axe_times,self.axe_distance,-10,100)
+        plt.subplot(3,2,1)
+        plt.specgram(self.wave_t_f[:,1],Fs = self.doc_frame_rate)
+        plt.subplot(3,2,2)
+        plt.specgram(self.wave_t_f[:,0],Fs = self.doc_frame_rate)
+        plt.subplot(3,2,3)
+        plt.specgram(self.wave_r_f[:,0],Fs = self.doc_frame_rate)
+        plt.subplot(3,2,4)
+        plt.specgram(self.wave_r_f[:,1],Fs = self.doc_frame_rate)
+        plt.subplot(3,2,5)
+        plt.specgram(self.wave_r_f[:,2],Fs = self.doc_frame_rate)
+        plt.subplot(3,2,6)
+        plt.specgram(self.wave_r_f[:,3],Fs = self.doc_frame_rate)
+        plt.show()'''
         return 0
 
-    def show_table(self,table,axe_x,axe_y,vmin = 0,vmax = 20):
-        plt.pcolormesh(axe_x,axe_y,table)
-        plt.show()
+    def cross_correction_list(self,vtx,vrx,foi):
+        """
+        vtx: 相应输出信号数组
+        vrx: 相应接收信号数组
+        foi: 正在处理的啁啾个数,比如在比较第2个啁啾,foi = 2
+        """
+        N = self.chirp_last
+        r_list = np.zeros(2*N-2)
+        for n in range(-N+1,N-1):
+            r_list[n+N-1] = self.cross_correction(vtx,vrx,N,n,foi)
+        Lag = np.argmax(r_list)-N+1
+        return Lag, r_list
 
-    def cal_distance(self,f_out,f_rec,vit = 343):
-        #f_out:此时的输出信号频率，f_rec:此时的输入信号频率
-        delta_f = np.min([f_out-f_rec,self.haute_frequency-f_rec+f_out-self.bas_frequency])
-        pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
-        return delta_f/pente_f*vit/2
-    
-    def cal_forfreq(self,i,f_out,distance,vit = 343, lap = 0.005):
-        #计算在当前输出信号下，达到distance+-lap*distance所需的频率，并计算对应强度和
-        pente_f = (self.haute_frequency-self.bas_frequency)/self.swept_last
-        fmax = f_out-(distance-lap)*pente_f*2/vit
-        fmin = f_out-(distance+lap)*pente_f*2/vit
-        pas = self.axe_freq
-        if fmax>self.bas_frequency and fmin>self.bas_frequency:
-            n_fmax = fmax//self.axe_freq_pas
-            n_fmin = fmin//self.axe_freq_pas
-            n_fmax = n_fmax.astype(int)
-            n_fmin = n_fmin.astype(int)
-            line = self.tftable[n_fmin:n_fmax,i]
-            return np.sum(line)
-        elif fmax>self.bas_frequency and fmin<self.bas_frequency:
-            fmin = self.haute_frequency-self.bas_frequency+fmin
-            n_fmax = fmax//self.axe_freq_pas
-            n_fmin = fmin//self.axe_freq_pas
-            n_bas = self.bas_frequency//self.axe_freq_pas
-            n_haute = self.haute_frequency//self.axe_freq_pas
-            n_fmax = n_fmax.astype(int)
-            n_fmin = n_fmin.astype(int)
-            n_haute = n_haute.astype(int)
-            n_bas = n_bas.astype(int)
-            line1 = self.tftable[n_bas:n_fmax,i]
-            line2 = self.tftable[n_fmin:n_haute,i]
-            return np.sum(line1)+np.sum(line2)
-        elif fmax<self.bas_frequency and fmin<self.bas_frequency:
-            fmin = self.haute_frequency-self.bas_frequency+fmin
-            fmax = self.haute_frequency-self.bas_frequency+fmax
-            n_fmax = fmax//self.axe_freq_pas
-            n_fmin = fmin//self.axe_freq_pas
-            n_fmax = n_fmax.astype(int)
-            n_fmin = n_fmin.astype(int)
-            line = self.tftable[n_fmin:n_fmax,i]
-            return np.sum(line)
-        elif fmax>self.haute_frequency and fmin<self.haute_frequency:
-            fmax = self.bas_frequency-(self.haute_frequency-fmax)
-            n_fmax = fmax//self.axe_freq_pas
-            n_fmin = fmin//self.axe_freq_pas
-            n_bas = self.bas_frequency//self.axe_freq_pas
-            n_haute = self.haute_frequency//self.axe_freq_pas
-            n_fmax = n_fmax.astype(int)
-            n_fmin = n_fmin.astype(int)
-            n_haute = n_haute.astype(int)
-            n_bas = n_bas.astype(int)
-            line1 = self.tftable[n_bas:n_fmax,i]
-            line2 = self.tftable[n_fmin:n_haute,i]
-            return np.sum(line1)+np.sum(line2)
-        elif fmax>self.haute_frequency and fmin>self.haute_frequency:
-            fmin = self.bas_frequency-(self.haute_frequency-fmin)
-            fmax = self.bas_frequency-(self.haute_frequency-fmax)
-            n_fmax = fmax//self.axe_freq_pas
-            n_fmin = fmin//self.axe_freq_pas
-            n_fmax = n_fmax.astype(int)
-            n_fmin = n_fmin.astype(int)
-            line = self.tftable[n_fmin:n_fmax,i]
-            return np.sum(line)
+    def cross_correction(self,vtx,vrx,N,n,foi):
+        if n>=0:
+            sum = 0
+            for m in range(0,N-n-1):
+                dsum = vtx[m]*vrx[int(foi*N)+m+n]
+                sum += dsum
+            return sum/(N-n)
         else:
-            return 0
-        
-    def record_gene(self):
-        self.general_sweptonde()
-        input('信号生成完毕，输入任何键开始测试')
-        self.pandr()
-        print('测试完毕，请等待结果分析')
-        self.get_data('record.wav')
-        self.get_refer_data()
-        self.make_tf()
-        self.make_td_d2f()
+            sum = 0
+            for m in range(0,N+n-1):
+                sum += vrx[int(foi*N)+m]*vtx[m-n]
+            return sum/(N+n)        
 
-    def record_nogene(self):
-        input('现在开始测试：')
-        self.pandr()
-        print('测试结束，等待结果')
-        self.get_data('record.wav')
-        self.make_tf()
-        self.make_td_d2f()
-    
-    def filtre_test(self,c = 343):
-        b,a = signal.butter(8,2*6000/self.sample_rate)
-        filtedData = signal.filtfilt(b,a,self.doc_wave)
-        f,t,z = signal.spectrogram(filtedData,self.doc_frame_rate,nperseg = self.nperseg,noverlap=self.noverlap,nfft = self.nfft)
-        #plt.pcolormesh(t,f,10*np.log10(abs(z)))
-        #plt.show()
-        z = abs(z)
-        d = c/(2*(self.haute_frequency-self.bas_frequency))*z*self.swept_last
+    def unitaire(self,list):
+        #标准化
+        max = np.max(np.abs(list))
+        return list/max
 
-        for i in range(np.shape(d)[1]):
-            for j in range(np.shape(d)[0]):
-                d[j,i] -= d[j,i-1]
-                if d[j,i]<0:
-                    d[j,i] = 0.000001
-        d = 10*np.log10(abs(d))
-        plt.pcolormesh(t,f[f<6000],d[f<6000,:])
-        plt.show()
-        return 0
 f = FMCW()
 
 #f.record_gene()
 #f.pandr()
+
 f.get_data()
 f.get_refer_data()
-f.make_tf()
+f.filtre_bb()
+lap,list = f.cross_correction_list(f.unitaire(f.wave_t_f[:,0]),f.unitaire(f.wave_r_f[:,1]),300)
 '''
-f.get_data('record.wav')
-f.filtre_test()
-f.get_refer_data()
-f.make_tf()
-f.make_td_d2f()
+vtx = f.get_data('chirp_0.012.wav')
+vrx = f.get_data('chirp_0.012r.wav')
+lap,list = f.cross_correction_list(vtx[:,0],vrx[:,0],0)
 '''
+
+plt.figure()
+t = np.linspace(-f.chirp_last+1,f.chirp_last-1,2*f.chirp_last-2)
+plt.plot(t,list)
+plt.show()
+input()
