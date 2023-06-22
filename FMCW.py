@@ -20,22 +20,26 @@ class FMCW():
         self.bas_frequency = 12000                                  #最低频率
         self.haute_frequency = 16000                                #最高频率
         self.swept_last = 0.012                                     #每次扫频持续时间
-        self.swept_nums = int(self.swept_last*self.sample_rate)     #每次扫频采样次数
+        self.chirp_last = int(self.swept_last*self.sample_rate)     #每次扫频采样次数
 
+        self.chirp_nums = 1000                          #播放的啁啾数
+        self.chirp_l = np.array([15000,17000])          #左声道啁啾频率区间
+        self.chirp_r = np.array([12000,14000])          #右声道啁啾频率区间
 
         #   信号读写
-        self.chunk = 1024                            #缓冲区帧数
+        self.chunk = self.chirp_last                 #缓冲区帧数
         self.format = pyaudio.paInt16                #采样位数
         ##  写
         ### 实现不保存到本地
         self.outputsignal = bytes()                  #测试音频数据，未实现
         ### 保存路径
-        self.path_in = "test.wav"                    #测试音频默认保存        
-        self.path_out = "record.wav"                 #录音音频默认保存
+        self.path_in = "chirp1.wav"                    #测试音频        
+        self.path_out = "record.wav"                                       #录音音频
         ##  读
         self.doc_frame_rate = 0                      #从文件获得帧率
         self.doc_frame_nums =  0                     #从文件获得帧数
         self.doc_wave = np.ones(0)                   #从文件获得的声音数组
+        self.nchannels = 0                           #从文件获取的声道数
 
         self.doc_refer_wave = np.ones(0)             #参考波
         
@@ -50,105 +54,32 @@ class FMCW():
         self.dtdtable = np.ones((0,0))          #差分时间距离表
         self.axe_freq_pas = 0                   #频率变化步长
 
-
         #短时傅里叶变换
-        self.nperseg = self.swept_nums*3
-        self.noverlap= self.swept_nums/4
+        self.nperseg = self.chirp_last
+        self.noverlap= self.chirp_last/4
         self.nfft = 5120
 
         self.doc_refer_diri = self.axe_times%0.12*(self.haute_frequency-self.bas_frequency)+self.bas_frequency
 
-    # 信号生成和处理 
-    def general_sweptonde(self,in_path = "test.wav"):
-        self.path_in = in_path    
-        #扫频信号生成
-        #frequency = [self.bas_frequency+(self.haute_frequency-self.bas_frequency)*(x%self.swept_nums)/self.swept_nums for x in range(self.sample_nums)]
-        #sine_wave = [np.cos(2 * np.pi * frequency[x] * x/self.sample_rate) for x in range(self.sample_nums)]
-        #times = np.linspace(0,self.sample_nums/self.sample_rate,self.sample_nums)
-        #sine_wave = signal.chirp(times,f0 = self.bas_frequency,t1 = self.swept_nums/self.sample_rate,f1 = self.haute_frequency,method = 'linear')
-        times = np.linspace(0,self.swept_nums/self.sample_rate,self.swept_nums)
-        sine_wave_1 = signal.chirp(times,f0 = self.bas_frequency,t1 = self.swept_nums/self.sample_rate,f1 = self.haute_frequency,method = 'linear')
-        sine_wave = np.ones(0)
-        for i in range(0,self.sample_nums,self.swept_nums):
-            sine_wave = np.concatenate((sine_wave,sine_wave_1))
-
-        nframes=self.sample_nums    #帧数
-        comptype="NONE"             #是否压缩
-        compname="not compressed"   #是否压缩
-        nchannels=1                 #信道数
-        sampwidth=2                 #样本宽度，一般为2字节
-
-        wav_file=wave.open(in_path, 'w')
-        wav_file.setparams((nchannels, sampwidth, int(self.sample_rate), nframes, comptype, compname))
-        for s in sine_wave:
-            wav_file.writeframes(struct.pack('h', int(s*self.amplitude)))    #h表示16位数
-            #self.outputsignal+=struct.pack('h', int(s*self.amplitude))
-
-    def play(self):
-        #播放信号
-        wf=wave.open(self.path_in,"rb")#打开wav
-
-        p = pyaudio.PyAudio()
-        stream = p.open(format=self.format,
-                        channels=1,
-                        rate=int(self.sample_rate),
-                        output=True)
-        '''
-        data = self.outputsignal[0:self.chunk]
-        base = self.chunk
-        while base < self.sample_nums:
-            stream.write(data)
-            data = self.outputsignal[base:base+self.chunk]
-        '''
-        data = wf.readframes(self.chunk)  # 读数据
-        while len(data) > 0:
-            stream.write(data)
-            data = wf.readframes(self.chunk)
-        stream.stop_stream()
-        stream.close()
-        p.terminate
-
-    def record(self):
-        p = pyaudio.PyAudio()
-        stream = p.open(format=self.format,
-                        channels=1,
-                        rate=int(self.sample_rate),
-                        input=True,
-                        frames_per_buffer=self.chunk)  # 打开流，传入响应参数
-        wf = wave.open(self.path_out, 'wb')  # 打开 wav 文件。
-        wf.setnchannels(1)  # 声道设置
-        wf.setsampwidth(p.get_sample_size(self.format))  # 采样位数设置
-        wf.setframerate(self.sample_rate)  # 采样频率设置
-
-        for _ in range(0, int(self.sample_nums / self.chunk)):
-            data = stream.read(self.chunk)
-            wf.writeframes(data)  # 写入数据
-        stream.stop_stream()  # 关闭流
-        stream.close()
-        p.terminate()
-        wf.close()        
-        pass
-    
     def pandr(self):
         p = pyaudio.PyAudio()
         stream = p.open(format=p.get_format_from_width(2),
-                        channels=1,
+                        channels=2,
                         rate=int(self.sample_rate),
                         input=True,
                         output=True,
                         frames_per_buffer=self.chunk)
         wf_i = wave.open(self.path_in, 'rb')  # 读 wav 文件
         wf = wave.open(self.path_out, 'wb')  # 打开 wav 文件。
-        wf.setnchannels(1)  # 声道设置
+        wf.setnchannels(2)  # 声道设置
         wf.setsampwidth(p.get_sample_size(self.format))  # 采样位数设置
         wf.setframerate(self.sample_rate)  # 采样频率设置
  
-        data = wf_i.readframes(self.chunk)  # 读数据
-        for i in range(0, int(self.sample_nums /  self.chunk )):
-            datao = stream.read(self.chunk)
+        data = wf_i.readframes(self.chirp_last)  # 读数据
+        for i in range(0, self.chirp_nums):
             stream.write(data)
-            wf.writeframes(datao)  # 写入数据
-            data = wf_i.readframes(self.chunk)        
+            datao = stream.read(self.chirp_last,exception_on_overflow = False)
+            wf.writeframes(datao)  # 写入数据     
         stream.close()
         p.terminate()
         wf.close()
@@ -156,111 +87,65 @@ class FMCW():
         pass
 
     #获得波
-    def get_data(self,wavfile = 'test.wav'):
+    def get_data(self,wavfile = 'record.wav'):
         #获取数据
         wf=wave.open(wavfile,"rb")              #打开wav
         p = pyaudio.PyAudio()                   #创建PyAudio对象
         params = wf.getparams()                 #参数获取
-        nchannels, sampwidth, self.doc_frame_rate, self.doc_frame_nums = params[:4]
+        self.nchannels, sampwidth, self.doc_frame_rate, self.doc_frame_nums = params[:4]
         stream = p.open(format=p.get_format_from_width(sampwidth),
-                        channels=nchannels, 
+                        channels=self.nchannels, 
                         rate=self.doc_frame_rate,
                         output=True)            #创建输出流
                                                 #读取完整的帧数据到str_data中，这是一个string类型的数据
         str_data = wf.readframes(self.doc_frame_nums)
-        self.doc_wave = np.frombuffer(str_data, dtype=np.short)
+        self.doc_wave = np.fromstring(str_data, dtype=np.short)
+        self.doc_wave = np.reshape(self.doc_wave,[self.doc_frame_nums,self.nchannels])
         wf.close()                              #关闭wave       
 
     #获得参考波
-    def get_refer_data(self,wavfile = 'test.wav'):
+    def get_refer_data(self):
         #获取数据
+        wavfile = self.path_in
         wf=wave.open(wavfile,"rb")              #打开wav
         p = pyaudio.PyAudio()                   #创建PyAudio对象
         params = wf.getparams()                 #参数获取
-        nchannels, sampwidth, self.doc_frame_rate, self.doc_frame_nums = params[:4]
+        nchannels, sampwidth, doc_frame_rate, self.doc_frame_nums = params[:4]
         stream = p.open(format=p.get_format_from_width(sampwidth),
                         channels=nchannels, 
                         rate=self.doc_frame_rate,
                         output=True)            #创建输出流
                                                 #读取完整的帧数据到str_data中，这是一个string类型的数据
         str_data = wf.readframes(self.doc_frame_nums)
-        self.doc_refer_wave= np.frombuffer(str_data, dtype=np.short)
-        f,t,self.refer_table = signal.spectrogram(self.doc_wave,self.doc_frame_rate,nperseg = self.nperseg,noverlap=self.noverlap,nfft = self.nfft)
+        self.doc_refer_wave= np.fromstring(str_data, dtype=np.short)
+        self.doc_refer_wave = np.reshape(self.doc_refer_wave,[self.doc_frame_nums,nchannels])
+        plt.figure()
+        plt.subplot(2,1,1)
+        plt.specgram(self.doc_refer_wave[:,1],Fs = doc_frame_rate)
+        plt.subplot(2,1,2)
+        plt.specgram(self.doc_refer_wave[:,0],Fs = doc_frame_rate)
+        plt.show()
         wf.close()                              #关闭wave   
 
-    def draw_time(self):
-        #时序绘图
-        time = np.linspace(0,self.doc_frame_nums/self.doc_frame_rate,self.doc_frame_nums)
-        plt.figure()
-        plt.plot(time,self.doc_wave)
-        plt.xlim(0,0.002)
-        plt.show()
-        input("输入任何值跳过")
-        pass
-
-    def draw_freq(self):
-        #频域绘图
-        complex_array = np.fft.fft(self.doc_wave)
-        fft_freq = np.fft.fftfreq(self.doc_frame_nums, 1/self.doc_frame_rate)
-        fft_pow = np.abs(complex_array)
-        plt.figure()
-        plt.plot(fft_freq[fft_freq>0],fft_pow[fft_freq>0])
-        plt.show()
-        input("输入任何值跳过")
-        pass
-
-    '''
-    def draw_taf(self):
-        #绘制时频图
-        #1. 获得频域总长度
-        fft_freq = np.fft.fftfreq(self.doc_frame_nums, 1/self.doc_frame_rate)
-        #2. 构建储存表
-        table = np.zeros(shape = (self.doc_frame_nums//self.meshframe+1,self.doc_frame_nums//self.meshframe+1))
-        time = np.linspace(0,self.doc_frame_nums/self.doc_frame_rate,self.doc_frame_nums//self.meshframe+1)
-        freq = np.linspace(0,np.max(fft_freq),self.doc_frame_nums//self.meshframe+1)
-        #3. 以每步self.meshframe的速度，向两边扩展self.meshframe//2，做傅里叶变换
-        for i in range(0,self.doc_frame_nums,self.meshframe):
-            #傅里叶变换
-            fft_pow = np.abs(np.fft.fft(self.doc_wave[i:i+self.meshframe//2]))
-            fft_freq = np.fft.fftfreq(self.meshframe//2, 1/self.doc_frame_rate)
-            fft_pow = fft_pow[fft_freq>0]
-            #将数据填入表中
-            self.make_table(table,fft_pow,fft_freq[fft_freq>0],self.doc_frame_nums//self.meshframe+1,i)
-        #4. 绘图
-        plt.pcolormesh(time,freq,table,vmin=0,vmax = np.max(freq)/5)
-        plt.show()
-        input()
-    def make_table(self,table,fft_pow,fft_freq,ysizetable,time):
-        mesh = np.linspace(0,np.max(fft_freq),ysizetable)
-        for i in range(np.size(fft_freq)):
-            for j in range(ysizetable):
-                if fft_freq[i]<mesh[j] and fft_pow[i]!=0:
-                    table[time//self.meshframe][j]+=fft_pow[i]
-                    break        
-    '''
 
     def make_tf(self):
         #f,t,z = signal.stft(self.doc_wave,self.doc_frame_rate,nperseg = 256,noverlap=128,nfft = 256)
-        f,t,z = signal.spectrogram(self.doc_wave,self.doc_frame_rate,nperseg = self.nperseg,noverlap=self.noverlap,nfft = self.nfft)
+        f,t,z = signal.spectrogram(self.doc_wave[:,1],self.doc_frame_rate,nperseg = self.nperseg,noverlap=self.noverlap,nfft = self.nfft)
         # plt.pcolormesh(t,f,abs(z))
         #plt.show()
         z_db = 10*np.log10(np.abs(z))
-        #plt.specgram(self.doc_wave,Fs = self.doc_frame_rate)
-        #plt.show()
+        plt.figure()
+        plt.subplot(2,1,1)
+        plt.specgram(self.doc_wave[:,1],Fs = self.doc_frame_rate)
+        plt.subplot(2,1,2)
+        plt.specgram(self.doc_wave[:,0],Fs = self.doc_frame_rate)
+        plt.show()
         self.show_table(z_db,t,f)
         self.axe_freq =f
         self.axe_times = t
         self.tftable = z
 
         self.axe_freq_pas = (np.max(f)-np.min(f))/np.size(f)
-    '''
-    def make_ccline(self):
-        line = np.zeros(1201)
-        a = self.doc_wave[]
-        for i in range(-600,600):
-            
-            b = self.doc_refer_wave
-            line[i+600] = correlate()'''
 
     def make_td_d2f(self,vit = 343):
         #另一种埖表方式
@@ -395,10 +280,16 @@ class FMCW():
         plt.show()
         return 0
 f = FMCW()
-#f.record_gene()
 
+#f.record_gene()
+#f.pandr()
+f.get_data()
+f.get_refer_data()
+f.make_tf()
+'''
 f.get_data('record.wav')
 f.filtre_test()
 f.get_refer_data()
 f.make_tf()
 f.make_td_d2f()
+'''
