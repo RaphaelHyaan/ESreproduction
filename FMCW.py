@@ -179,7 +179,7 @@ class FMCW():
             dc_table[:,i,:] = c_table[:,i,:]-c_table[:,i-1,:]
         
         distance_table = dc_table*self.c/(2*self.sample_rate)
-
+        '''
         plt.figure()
         plt.subplot(3,1,1)
         plt.plot(t_axe,lap_list,label = ['1','2','3','4'])
@@ -191,7 +191,7 @@ class FMCW():
         plt.subplot(3,1,3)
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(distance_table[:,:,1])))
         plt.title('Distance_table')
-        plt.show()
+        plt.show()'''
 
 
         return lap_list,c_table,distance_table
@@ -262,14 +262,15 @@ class FMCW():
         for i in range(self.chirp_nums-1):
             m_d_d[:,i,:] = m_d[:,i+1,:]-m_d[:,i,:]
 
+        '''        
         plt.figure()
         plt.subplot(1,1,1)
         plt.plot(t_axe,l_lap,label = ['1','2','3','4'])
         plt.title('Lap_list')
         plt.legend()
-        plt.show()
+        plt.show()'''
 
-        self.print_table(t_axe,d_axe,m_d_d,4,2)
+        #self.print_table(t_axe,d_axe,m_d_d,4,2)
 
         return 0
 
@@ -303,11 +304,12 @@ f.pandr()
 f.get_data()
 f.get_refer_data()
 f.filtre_bb()
+begin = time.time()
 f.distance_matrix()
+p1 = time.time()
 
-
-#f.c_fmcw_list()
-
+f.c_fmcw_list()
+p2 = time.time()
 '''
 vtx = f.get_data('chirp_0.012.wav')
 vrx = f.get_data('chirp_0.012rr.wav')
@@ -340,5 +342,6 @@ plt.legend()
 plt.show()
 print('新方法时间：%f，老方法时间：%f' %(end1-begin,4*(end2-end1)))
 '''
+print('新方法时间：%f，老方法时间：%f' %(p1-begin,p2-p1))
 input()
 
