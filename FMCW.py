@@ -240,7 +240,7 @@ class FMCW():
     def load(self,filename):
         return np.load(filename)
 
-f = FMCW('wav/background01.wav')
+f = FMCW('wav/dakai03.wav')
 
 #f.record_gene()
 f.pandr()
@@ -249,7 +249,7 @@ f.get_data()
 f.get_refer_data()
 
 m_d_d = f.distance_matrix()
-f.save(m_d_d,'npy/one01.npy')
+f.save(m_d_d,'npy/dakai03.npy')
 
 input()
 
