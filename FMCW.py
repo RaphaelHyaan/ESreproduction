@@ -23,8 +23,8 @@ class FMCW():
 
         self.chirp_nums = 200                          #播放的啁啾数
         self.remove_nums = 42                           #去除头部的样本数
-        self.chirp_l = np.array([15000,17000])          #左声道啁啾频率区间
-        self.chirp_r = np.array([12000,14000])          #右声道啁啾频率区间
+        self.chirp_l = np.array([17000,18000])          #左声道啁啾频率区间
+        self.chirp_r = np.array([15000,16000])          #右声道啁啾频率区间
 
         #   信号读写
         self.chunk = self.chirp_last                 #缓冲区帧数
@@ -32,7 +32,7 @@ class FMCW():
         ##  写
 
         ### 保存路径
-        self.path_in = "chirp_lr_12000_14000_15000_17000.wav"                    #测试音频        
+        self.path_in = "chirp_lr_17000_18000_15000_16000.wav"                    #测试音频        
         self.path_out = pathout                          #录音音频
         ##  读
         self.doc_frame_rate = self.sample_rate       #从文件获得帧率
@@ -206,8 +206,8 @@ class FMCW():
         plt.legend()
         plt.show()'''
 
-        self.print_table(t_axe,dn_axe,m_d_d[:,:],11,8.5)
-        self.print_table(t_axe,d_axe,m_d_d_2[:,:],11,8.5)
+        self.print_table(t_axe,dn_axe,m_d_d[:,:],12,10)
+        self.print_table(t_axe,d_axe,m_d_d_2[:,:],12,10)
 
         return m_d_d
 
@@ -221,10 +221,10 @@ class FMCW():
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,1])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_hf')
         plt.subplot(2,2,3)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax-1,vmin = vmin-1,cmap='jet',norm="log",shading =  'gouraud')
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('2:left_bf')
         plt.subplot(2,2,4)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax-1,vmin = vmin-1,cmap='jet',norm="log",shading =  'gouraud')
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_bf')
         plt.show()
 
@@ -256,7 +256,7 @@ class FMCW():
 f = FMCW('wav/one02.wav')
 
 #f.record_gene()
-#f.pandr()
+f.pandr()
 
 f.get_data()
 f.get_refer_data()
