@@ -270,7 +270,7 @@ class FMCW():
         plt.legend()
         plt.show()'''
 
-        #self.print_table(t_axe,d_axe,m_d_d,4,2)
+        self.print_table(t_axe,d_axe,m_d_d,4,2.7)
 
         return 0
 
@@ -299,7 +299,7 @@ class FMCW():
 f = FMCW()
 
 #f.record_gene()
-f.pandr()
+#f.pandr()
 
 f.get_data()
 f.get_refer_data()
@@ -308,18 +308,18 @@ begin = time.time()
 f.distance_matrix()
 p1 = time.time()
 
-f.c_fmcw_list()
+#f.c_fmcw_list()
 p2 = time.time()
 '''
 vtx = f.get_data('chirp_0.012.wav')
 vrx = f.get_data('chirp_0.012rr.wav')
 lap,list = f.cross_correction_list(vtx[:,0],vrx[:,0],0)
 '''
-'''begin = time.time()
-r,lap = f.cc_matrice(f.unitaire(81))
-end1 = time.time()'''
+begin = time.time()
+r,lap = f.cc_matrice(f.unitaire(143))
+end1 = time.time()
 
-'''lap,list = f.cross_correction_list(f.wave_t_f[:,0],f.wave_r_f[:,0],81)
+#lap,list = f.cross_correction_list(f.wave_t_f[:,0],f.wave_r_f[:,0],81)
 end2 = time.time()
 plt.figure()
 plt.rcParams['font.sans-serif'] = ['fangsong']
@@ -341,7 +341,7 @@ plt.title('右侧低频信号')
 plt.legend()
 plt.show()
 print('新方法时间：%f，老方法时间：%f' %(end1-begin,4*(end2-end1)))
-'''
+
 print('新方法时间：%f，老方法时间：%f' %(p1-begin,p2-p1))
 input()
 
