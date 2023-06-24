@@ -9,7 +9,7 @@ import scipy.signal as signal
 class FMCW():
 
 
-    def __init__(self):
+    def __init__(self,pathout = 'record.wav'):
 
         self.c = 343                                #声速
         #   信号生成
@@ -22,6 +22,7 @@ class FMCW():
         self.chirp_last = int(self.swept_last*self.sample_rate)     #每次扫频采样次数
 
         self.chirp_nums = 200                          #播放的啁啾数
+        self.remove_nums = 42                           #去除头部的样本数
         self.chirp_l = np.array([15000,17000])          #左声道啁啾频率区间
         self.chirp_r = np.array([12000,14000])          #右声道啁啾频率区间
 
@@ -32,7 +33,7 @@ class FMCW():
 
         ### 保存路径
         self.path_in = "chirp_lr.wav"                    #测试音频        
-        self.path_out = "record.wav"                   #录音音频
+        self.path_out = pathout                          #录音音频
         ##  读
         self.doc_frame_rate = self.sample_rate       #从文件获得帧率
         self.doc_frame_nums =  0                     #从文件获得帧数
@@ -78,8 +79,9 @@ class FMCW():
         pass
 
     #获得波
-    def get_data(self,wavfile = 'record.wav'):
+    def get_data(self):
         #获取数据
+        wavfile = self.path_out
         wf=wave.open(wavfile,"rb")              #打开wav
         p = pyaudio.PyAudio()                   #创建PyAudio对象
         params = wf.getparams()                 #参数获取
@@ -124,8 +126,9 @@ class FMCW():
 
         #滤波
         self.wave_t_f = np.zeros(np.shape(self.wave_t))
-        self.wave_t_f[:,0] = signal.filtfilt(self.bl,self.al,self.wave_t[:,0])
-        self.wave_t_f[:,1] = signal.filtfilt(self.br,self.ar,self.wave_t[:,1])
+        #self.wave_t_f[:,0] = signal.filtfilt(self.bl,self.al,self.wave_t[:,0])
+        #self.wave_t_f[:,1] = signal.filtfilt(self.br,self.ar,self.wave_t[:,1])
+        self.wave_t_f = self.wave_t
         wf.close()                              #关闭wave   
 
     def load_refer_data(self,filename = r'npy\referwave.npy'):
@@ -165,28 +168,33 @@ class FMCW():
     #计算距离
     def distance_matrix(self):
         N =self.chirp_last
-        m_r = np.zeros((2*N-1,self.chirp_nums,4))
-        m_d = np.zeros((2*N-1,self.chirp_nums,4))
-        l_lap = np.zeros((self.chirp_nums,4))
-        for i in range(self.chirp_nums):
-            m_r[:,i,:],l_lap[i,:] = self.cc_matrice(i)
+        m_r = np.zeros((2*N-1,self.chirp_nums-self.remove_nums,4))
+        m_d = np.zeros((2*N-1,self.chirp_nums-self.remove_nums,4))
+        #m_d_d = np.zeros((2*N-1,self.chirp_nums-2,4))
+
+        l_lap = np.zeros((self.chirp_nums-self.remove_nums,4))
+        for i in range(self.chirp_nums-self.remove_nums):
+            m_r[:,i,:],l_lap[i,:] = self.cc_matrice(i+self.remove_nums)
         m_d = m_r*self.c/(2*self.sample_rate)
         
-        t_axe = np.linspace(0,self.chirp_nums*N/self.sample_rate,self.chirp_nums-1)
+        t_axe = np.linspace(0,(self.chirp_nums-self.remove_nums)*N/self.sample_rate,self.chirp_nums-self.remove_nums-1)
         c_axe = np.linspace(-N+1,N,2*N-1)
         d_axe = c_axe*self.c/(2*self.sample_rate)
 
         m_d_d = np.diff(m_d,axis = 1)
-
-        '''        
+        '''
+        for i in range(self.chirp_nums-2):
+            m_d_d[:,i,:] = m_d[:,i,:]-(m_d[:,i-1,:]+m_d[:,i-2,:]+m_d[:,i-3,:])/3
+        '''
+        '''
         plt.figure()
         plt.subplot(1,1,1)
-        plt.plot(t_axe,l_lap,label = ['1','2','3','4'])
+        plt.plot(t_axe,l_lap[1:],label = ['1','2','3','4'])
         plt.title('Lap_list')
         plt.legend()
         plt.show()'''
 
-        self.print_table(t_axe,d_axe,m_d_d,12,6)
+        self.print_table(t_axe,d_axe,m_d_d,11,8)
 
         return m_d_d
 
@@ -203,25 +211,25 @@ class FMCW():
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax,vmin = vmin)
         plt.title('2:left_bf')
         plt.subplot(2,2,4)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax,vmin = vmin)
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax,vmin = vmin-1)
         plt.title('1:right_bf')
         plt.show()
 
-    def print_list(t_axe,list,title = ['左侧高频信号','右侧高频信号','左侧低频信号','右侧低频信号'],label = [1,2,3,4]):
+    def print_list(self,list,title = ['左侧高频信号','右侧高频信号','左侧低频信号','右侧低频信号'],label = [1,2,3,4]):
         plt.figure()
         plt.rcParams['font.sans-serif'] = ['fangsong']
         plt.rcParams['axes.unicode_minus']=False
         plt.subplot(2,2,1)
-        plt.plot(t_axe,list[:,0],label = label[0])
+        plt.plot(list[:,0],label = label[0])
         plt.title(title[0])
         plt.subplot(2,2,2)
-        plt.plot(t_axe,list[:,1],label = label[1])
+        plt.plot(list[:,1],label = label[1])
         plt.title(title[1])
         plt.subplot(2,2,3)
-        plt.plot(t_axe,list[:,2],label = label[2])
+        plt.plot(list[:,2],label = label[2])
         plt.title(title[2])
         plt.subplot(2,2,4)
-        plt.plot(t_axe,list[:,3],label = label[3])
+        plt.plot(list[:,3],label = label[3])
         plt.title(title[3])
         plt.legend()
         plt.show()
@@ -232,17 +240,16 @@ class FMCW():
     def load(self,filename):
         return np.load(filename)
 
-f = FMCW()
+f = FMCW('wav/background01.wav')
 
 #f.record_gene()
-#f.pandr()
+f.pandr()
 
 f.get_data()
-f.load_refer_data()
-f.print_wave_f()
+f.get_refer_data()
 
 m_d_d = f.distance_matrix()
-
+f.save(m_d_d,'npy/one01.npy')
 
 input()
 
