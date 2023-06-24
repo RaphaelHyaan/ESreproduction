@@ -171,6 +171,7 @@ class FMCW():
         m_r = np.zeros((2*N-1,self.chirp_nums-self.remove_nums,4))
         m_d = np.zeros((2*N-1,self.chirp_nums-self.remove_nums,4))
         #m_d_d = np.zeros((2*N-1,self.chirp_nums-2,4))
+        m_d_d_2 = np.zeros((201,self.chirp_nums-self.remove_nums-1,4))
 
         l_lap = np.zeros((self.chirp_nums-self.remove_nums,4))
         for i in range(self.chirp_nums-self.remove_nums):
@@ -178,10 +179,15 @@ class FMCW():
         m_d = m_r*self.c/(2*self.sample_rate)
         
         t_axe = np.linspace(0,(self.chirp_nums-self.remove_nums)*N/self.sample_rate,self.chirp_nums-self.remove_nums-1)
-        c_axe = np.linspace(-N+1,N,2*N-1)
+        c_axe = np.linspace(-100,100,201)
         d_axe = c_axe*self.c/(2*self.sample_rate)
 
+
+
         m_d_d = np.diff(m_d,axis = 1)
+        for i in range(0,4):
+            lap_i = np.mean(np.argmax(m_d_d[:,:,i],axis = 0)).astype(int)
+            m_d_d_2[:,:,i] = m_d_d[lap_i-100:lap_i+101,:,i]
         '''
         for i in range(self.chirp_nums-2):
             m_d_d[:,i,:] = m_d[:,i,:]-(m_d[:,i-1,:]+m_d[:,i-2,:]+m_d[:,i-3,:])/3
@@ -194,24 +200,25 @@ class FMCW():
         plt.legend()
         plt.show()'''
 
-        self.print_table(t_axe,d_axe,m_d_d,11,8)
+        #self.print_table(t_axe,d_axe,m_d_2[:,1:],15,12)
+        self.print_table(t_axe,d_axe,m_d_d_2[:,:],11,8.5)
 
         return m_d_d
 
-    def print_table(self,t_axe,d_axe,table,vmax = 8,vmin = 7):
+    def print_table(self,t_axe,d_axe,table,vmax = 8.5,vmin = 7):
         #输出一个三维的表格
         plt.figure()
         plt.subplot(2,2,1)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,0])),vmax = vmax,vmin = vmin)
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,0])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('0:left_hf')
         plt.subplot(2,2,2)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,1])),vmax = vmax,vmin = vmin)
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,1])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_hf')
         plt.subplot(2,2,3)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax,vmin = vmin)
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax-1,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('2:left_bf')
         plt.subplot(2,2,4)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax,vmin = vmin-1)
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax-1,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_bf')
         plt.show()
 
@@ -240,16 +247,16 @@ class FMCW():
     def load(self,filename):
         return np.load(filename)
 
-f = FMCW('wav/dakai03.wav')
+f = FMCW('wav/one02.wav')
 
 #f.record_gene()
-f.pandr()
+#f.pandr()
 
 f.get_data()
 f.get_refer_data()
 
 m_d_d = f.distance_matrix()
-f.save(m_d_d,'npy/dakai03.npy')
+
 
 input()
 
