@@ -232,11 +232,13 @@ class FMCW():
         lag = np.zeros(4)
 
         begin = time.time()
+        '''
         #方法1：先计算外积在取每条次对角线
         mat = np.einsum('ik,jk->ijk',vtx,vrx)   #计算每个batch下两个向量的外积
         for n in range(-N+1,N):
             r[n+N-1,:] = np.trace(mat,n,axis1 = 0,axis2 = 1)/np.max([N-np.abs(n),200])
-        p1 =  time.time()-begin
+        p1 =  time.time()-begin'''
+
         '''#方法2：直接使用矩阵乘积获得
         ## 1. 构建上三角矩阵和右下三角矩阵
         i = np.ones((N,N))
@@ -256,11 +258,14 @@ class FMCW():
         ## 4.连接数组
         rl = rl[:N-1,:]#删除重复的行
         r2 = np.concatenate((rl,ru),axis = 0)
-        p2 =  time.time()-p1-begin
         
-        lag = np.argmax(r,axis = 0)
+         
+        '''
+        r2 = np.zeros((2*N-1,4))
+        for i in range(4):
+            r2[:,i] = np.correlate(vtx[:,i], vrx[:,i], mode = 'full')
         lag2 = np.argmax(r2,axis = 0)
-        return r2,lag2'''
+        return r2,lag2
 
     def distance_matrix(self):
         N =self.chirp_last
@@ -271,13 +276,11 @@ class FMCW():
             m_r[:,i,:],l_lap[i,:] = self.cc_matrice(i)
         m_d = m_r*self.c/(2*self.sample_rate)
         
-        t_axe = np.linspace(0,self.chirp_nums*N/self.sample_rate,self.chirp_nums)
+        t_axe = np.linspace(0,self.chirp_nums*N/self.sample_rate,self.chirp_nums-1)
         c_axe = np.linspace(-N+1,N,2*N-1)
         d_axe = c_axe*self.c/(2*self.sample_rate)
 
-        m_d_d = np.zeros((2*N-1,self.chirp_nums,4))
-        for i in range(self.chirp_nums-1):
-            m_d_d[:,i,:] = m_d[:,i+1,:]-m_d[:,i,:]
+        m_d_d = np.diff(m_d,axis = 1)
 
         '''        
         plt.figure()
@@ -287,7 +290,7 @@ class FMCW():
         plt.legend()
         plt.show()'''
 
-        self.print_table(t_axe,d_axe,m_d_d,4,2.7)
+        self.print_table(t_axe,d_axe,m_d_d,12,6)
 
         return 0
 
@@ -321,24 +324,25 @@ f = FMCW()
 f.get_data()
 f.get_refer_data()
 f.filtre_bb()
-'''
+
 begin = time.time()
 f.distance_matrix()
 p1 = time.time()
-'''
+
 #f.c_fmcw_list()
-p2 = time.time()
+#p2 = time.time()
 '''
 vtx = f.get_data('chirp_0.012.wav')
 vrx = f.get_data('chirp_0.012rr.wav')
 lap,list = f.cross_correction_list(vtx[:,0],vrx[:,0],0)
 '''
+
 begin = time.time()
 r,lap = f.cc_matrice(f.unitaire(143))
 end1 = time.time()
 
 #lap,list = f.cross_correction_list(f.wave_t_f[:,0],f.wave_r_f[:,0],81)
-end2 = time.time()
+
 plt.figure()
 plt.rcParams['font.sans-serif'] = ['fangsong']
 plt.rcParams['axes.unicode_minus']=False
@@ -358,7 +362,8 @@ plt.title('右侧低频信号')
 #plt.plot(t,list,label ='原')
 plt.legend()
 plt.show()
-print('新方法时间：%f，老方法时间：%f' %(end1-begin,4*(end2-end1)))
+end2 = time.time()
+print('新方法时间：%f，老方法时间：%f' %(p1-begin,4*(end2-p1)))
 
 
 input()
