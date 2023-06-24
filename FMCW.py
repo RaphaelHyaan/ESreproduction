@@ -155,118 +155,21 @@ class FMCW():
         plt.show()'''
 
         return 0
-    
-    def c_fmcw_list(self):
-        N = self.chirp_last
-        c_table = np.zeros((2*N-2,self.chirp_nums,4))
-        distance_table = np.zeros((2*N-2,self.chirp_nums,4))
-        lap_list = np.zeros((self.chirp_nums,4))
 
-        t_axe = np.linspace(0,self.chirp_nums*N/self.sample_rate,self.chirp_nums)
-        c_axe = np.linspace(-N+1,N-1,2*N-2)
-        d_axe = c_axe*self.c/(2*self.sample_rate)
-
-        vtx = np.abs(self.wave_t_f)
-        vrx = np.abs(self.wave_r_f)
-        for i in range(self.chirp_nums):
-            lap_list[i,0],c_table[:,i,0] = self.cross_correction_list(vtx[:,1],vrx[:,0],i)
-            lap_list[i,1],c_table[:,i,1] = self.cross_correction_list(vtx[:,1],vrx[:,2],i)
-            lap_list[i,2],c_table[:,i,2] = self.cross_correction_list(vtx[:,0],vrx[:,1],i)
-            lap_list[i,3],c_table[:,i,3] = self.cross_correction_list(vtx[:,0],vrx[:,3],i)
-        
-        dc_table = np.zeros((2*N-2,self.chirp_nums,4))
-        for i in range(self.chirp_nums):
-            dc_table[:,i,:] = c_table[:,i,:]-c_table[:,i-1,:]
-        
-        distance_table = dc_table*self.c/(2*self.sample_rate)
-        '''
-        plt.figure()
-        plt.subplot(3,1,1)
-        plt.plot(t_axe,lap_list,label = ['1','2','3','4'])
-        plt.title('Lap_list')
-        plt.legend()
-        plt.subplot(3,1,2)
-        plt.pcolormesh(t_axe,c_axe,np.log(np.abs(c_table[:,:,3])))
-        plt.title('C_table')
-        plt.subplot(3,1,3)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(distance_table[:,:,1])))
-        plt.title('Distance_table')
-        plt.show()'''
-
-
-        return lap_list,c_table,distance_table
-
-    def cross_correction_list(self,vtx,vrx,foi):
-        """
-        vtx: 相应输出信号数组
-        vrx: 相应接收信号数组
-        foi: 正在处理的啁啾个数,比如在比较第2个啁啾,foi = 2
-        """
-        N = self.chirp_last
-        r_list = np.zeros(2*N-2)
-        for n in range(-N+1,N-1):
-            r_list[n+N-1] = self.cross_correction(vtx,vrx,N,n,foi)
-        Lag = np.argmax(r_list)-N+1
-        return Lag, r_list
-
-    def cross_correction(self,vtx,vrx,N,n,foi):
-        if n>=0:
-            sum = 0
-            for m in range(0,N-n-1):
-                dsum = vtx[m]*vrx[int(foi*N)+m+n]
-                sum += dsum
-            return sum/np.max([(N-n),100])
-        else:
-            sum = 0
-            for m in range(0,N+n-2):
-                sum += vrx[int(foi*N)+m]*vtx[m-n]
-            return sum/np.max([(N-n),100])       
-
+    #使用矩阵方法计算cc
     def cc_matrice(self,foi):
         #尝试使用矩阵方式获得lag
         N = self.chirp_last
         vtx = self.wave_t_f[0:N,:]
         vtx = np.repeat(vtx,2,axis = 1)
         vrx = self.wave_r_f[foi*N:(foi+1)*N,:]
-        r = np.zeros((2*N-1,4))
-        lag = np.zeros(4)
-
-        begin = time.time()
-        '''
-        #方法1：先计算外积在取每条次对角线
-        mat = np.einsum('ik,jk->ijk',vtx,vrx)   #计算每个batch下两个向量的外积
-        for n in range(-N+1,N):
-            r[n+N-1,:] = np.trace(mat,n,axis1 = 0,axis2 = 1)/np.max([N-np.abs(n),200])
-        p1 =  time.time()-begin'''
-
-        '''#方法2：直接使用矩阵乘积获得
-        ## 1. 构建上三角矩阵和右下三角矩阵
-        i = np.ones((N,N))
-        triu = np.tril(i,0)
-        tril = np.fliplr(triu)
-        
-        ## 2. 构建vtx和vrx相应的矩阵
-        vtx_u = np.einsum('ik,ij->jik',vtx,triu)
-        vrx_l = np.einsum('ik,ij->jik',vrx,tril)
-        在这一步存在一些问题，我需要将一个类似
-        [A1_1,A1_2,A1_3;0,A1_2,A1_3;0,0,A1_3]的矩阵转化为类似
-        [A1_1,A1_2,A1_3;A1_2,A1_3,0;A1_3,0,0]的矩阵，目前没有想到初等行变换方法
-        print(vrx_l[N-10:N,0:10,0])
-        ## 3.矩阵与向量相乘取出和
-        ru = np.einsum('jik,ik->jk',vtx_u,vrx)
-        rl = np.einsum('jik,ik->jk',vrx_l,vtx)
-        ## 4.连接数组
-        rl = rl[:N-1,:]#删除重复的行
-        r2 = np.concatenate((rl,ru),axis = 0)
-        
-         
-        '''
         r2 = np.zeros((2*N-1,4))
         for i in range(4):
             r2[:,i] = np.correlate(vtx[:,i], vrx[:,i], mode = 'full')
         lag2 = np.argmax(r2,axis = 0)
         return r2,lag2
 
+    #计算距离
     def distance_matrix(self):
         N =self.chirp_last
         m_r = np.zeros((2*N-1,self.chirp_nums,4))
@@ -295,6 +198,7 @@ class FMCW():
         return 0
 
     def print_table(self,t_axe,d_axe,table,vmax = 8,vmin = 7):
+        #输出一个三维的表格
         plt.figure()
         plt.subplot(2,2,1)
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,0])),vmax = vmax,vmin = vmin)
@@ -310,11 +214,24 @@ class FMCW():
         plt.title('1:right_bf')
         plt.show()
 
-    def unitaire(self,list):
-        #标准化
-        mean = np.mean(np.abs(list))
-        #return np.abs(list)
-        return list
+    def print_list(t_axe,list,title = ['左侧高频信号','右侧高频信号','左侧低频信号','右侧低频信号'],label = [1,2,3,4]):
+        plt.figure()
+        plt.rcParams['font.sans-serif'] = ['fangsong']
+        plt.rcParams['axes.unicode_minus']=False
+        plt.subplot(2,2,1)
+        plt.plot(t_axe,list[:,0],label = label[0])
+        plt.title(title[0])
+        plt.subplot(2,2,2)
+        plt.plot(t_axe,list[:,1],label = label[1])
+        plt.title(title[1])
+        plt.subplot(2,2,3)
+        plt.plot(t_axe,list[:,2],label = label[2])
+        plt.title(title[2])
+        plt.subplot(2,2,4)
+        plt.plot(t_axe,list[:,3],label = label[3])
+        plt.title(title[3])
+        plt.legend()
+        plt.show()
 
 f = FMCW()
 
@@ -329,39 +246,11 @@ begin = time.time()
 f.distance_matrix()
 p1 = time.time()
 
-#f.c_fmcw_list()
-#p2 = time.time()
-'''
-vtx = f.get_data('chirp_0.012.wav')
-vrx = f.get_data('chirp_0.012rr.wav')
-lap,list = f.cross_correction_list(vtx[:,0],vrx[:,0],0)
-'''
-
 begin = time.time()
 r,lap = f.cc_matrice(f.unitaire(143))
 end1 = time.time()
 
-#lap,list = f.cross_correction_list(f.wave_t_f[:,0],f.wave_r_f[:,0],81)
 
-plt.figure()
-plt.rcParams['font.sans-serif'] = ['fangsong']
-plt.rcParams['axes.unicode_minus']=False
-t = np.linspace(-f.chirp_last+1,f.chirp_last,2*f.chirp_last-1)
-plt.subplot(2,2,1)
-plt.plot(t,r[:,0])
-plt.title('左侧高频信号')
-plt.subplot(2,2,2)
-plt.plot(t,r[:,1],label = [1])
-plt.title('右侧高频信号')
-plt.subplot(2,2,3)
-plt.plot(t,r[:,2],label = [2])
-plt.title('左侧低频信号')
-plt.subplot(2,2,4)
-plt.plot(t,r[:,3],label = [3])
-plt.title('右侧低频信号')
-#plt.plot(t,list,label ='原')
-plt.legend()
-plt.show()
 end2 = time.time()
 print('新方法时间：%f，老方法时间：%f' %(p1-begin,4*(end2-p1)))
 
