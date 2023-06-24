@@ -32,7 +32,7 @@ class FMCW():
         ##  写
 
         ### 保存路径
-        self.path_in = "chirp_lr.wav"                    #测试音频        
+        self.path_in = "chirp_lr_12000_14000_15000_17000.wav"                    #测试音频        
         self.path_out = pathout                          #录音音频
         ##  读
         self.doc_frame_rate = self.sample_rate       #从文件获得帧率
@@ -180,14 +180,20 @@ class FMCW():
         
         t_axe = np.linspace(0,(self.chirp_nums-self.remove_nums)*N/self.sample_rate,self.chirp_nums-self.remove_nums-1)
         c_axe = np.linspace(-100,100,201)
+        cn_axe = np.linspace(-N+1,N,2*N-1)
         d_axe = c_axe*self.c/(2*self.sample_rate)
+        dn_axe= cn_axe*self.c/(2*self.sample_rate)
 
 
 
         m_d_d = np.diff(m_d,axis = 1)
         for i in range(0,4):
-            lap_i = np.mean(np.argmax(m_d_d[:,:,i],axis = 0)).astype(int)
-            m_d_d_2[:,:,i] = m_d_d[lap_i-100:lap_i+101,:,i]
+            lap_i = np.argmax(m_d_d[:,:,i],axis = 0)
+            if np.shape(lap_i[lap_i>N])>np.shape(lap_i[lap_i<N]):
+                lap = np.mean(lap_i[lap_i>N]).astype(int)
+            else:
+                lap = np.mean(lap_i[lap_i<N]).astype(int)
+            m_d_d_2[:,:,i] = m_d_d[lap-100:lap+101,:,i]
         '''
         for i in range(self.chirp_nums-2):
             m_d_d[:,i,:] = m_d[:,i,:]-(m_d[:,i-1,:]+m_d[:,i-2,:]+m_d[:,i-3,:])/3
@@ -200,7 +206,7 @@ class FMCW():
         plt.legend()
         plt.show()'''
 
-        #self.print_table(t_axe,d_axe,m_d_2[:,1:],15,12)
+        self.print_table(t_axe,dn_axe,m_d_d[:,:],11,8.5)
         self.print_table(t_axe,d_axe,m_d_d_2[:,:],11,8.5)
 
         return m_d_d
@@ -215,10 +221,10 @@ class FMCW():
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,1])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_hf')
         plt.subplot(2,2,3)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax-1,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax-1,vmin = vmin-1,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('2:left_bf')
         plt.subplot(2,2,4)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax-1,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax-1,vmin = vmin-1,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_bf')
         plt.show()
 
