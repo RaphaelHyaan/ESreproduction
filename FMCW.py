@@ -228,21 +228,39 @@ class FMCW():
         vtx = self.wave_t_f[0:N,:]
         vtx = np.repeat(vtx,2,axis = 1)
         vrx = self.wave_r_f[foi*N:(foi+1)*N,:]
-
-        mat = np.einsum('ik,jk->ijk',vtx,vrx)   #计算每个batch下两个向量的外积
-
-
-        
         r = np.zeros((2*N-1,4))
+        lag = np.zeros(4)
 
-
+        begin = time.time()
+        #方法1：先计算外积在取每条次对角线
+        mat = np.einsum('ik,jk->ijk',vtx,vrx)   #计算每个batch下两个向量的外积
         for n in range(-N+1,N):
             r[n+N-1,:] = np.trace(mat,n,axis1 = 0,axis2 = 1)/np.max([N-np.abs(n),200])
-
-
-        lag = np.zeros(4)
+        p1 =  time.time()-begin
+        '''#方法2：直接使用矩阵乘积获得
+        ## 1. 构建上三角矩阵和右下三角矩阵
+        i = np.ones((N,N))
+        triu = np.tril(i,0)
+        tril = np.fliplr(triu)
+        
+        ## 2. 构建vtx和vrx相应的矩阵
+        vtx_u = np.einsum('ik,ij->jik',vtx,triu)
+        vrx_l = np.einsum('ik,ij->jik',vrx,tril)
+        在这一步存在一些问题，我需要将一个类似
+        [A1_1,A1_2,A1_3;0,A1_2,A1_3;0,0,A1_3]的矩阵转化为类似
+        [A1_1,A1_2,A1_3;A1_2,A1_3,0;A1_3,0,0]的矩阵，目前没有想到初等行变换方法
+        print(vrx_l[N-10:N,0:10,0])
+        ## 3.矩阵与向量相乘取出和
+        ru = np.einsum('jik,ik->jk',vtx_u,vrx)
+        rl = np.einsum('jik,ik->jk',vrx_l,vtx)
+        ## 4.连接数组
+        rl = rl[:N-1,:]#删除重复的行
+        r2 = np.concatenate((rl,ru),axis = 0)
+        p2 =  time.time()-p1-begin
+        
         lag = np.argmax(r,axis = 0)
-        return r,lag
+        lag2 = np.argmax(r2,axis = 0)
+        return r2,lag2'''
 
     def distance_matrix(self):
         N =self.chirp_last
@@ -251,7 +269,6 @@ class FMCW():
         l_lap = np.zeros((self.chirp_nums,4))
         for i in range(self.chirp_nums):
             m_r[:,i,:],l_lap[i,:] = self.cc_matrice(i)
-
         m_d = m_r*self.c/(2*self.sample_rate)
         
         t_axe = np.linspace(0,self.chirp_nums*N/self.sample_rate,self.chirp_nums)
@@ -304,10 +321,11 @@ f = FMCW()
 f.get_data()
 f.get_refer_data()
 f.filtre_bb()
+'''
 begin = time.time()
 f.distance_matrix()
 p1 = time.time()
-
+'''
 #f.c_fmcw_list()
 p2 = time.time()
 '''
@@ -342,6 +360,6 @@ plt.legend()
 plt.show()
 print('新方法时间：%f，老方法时间：%f' %(end1-begin,4*(end2-end1)))
 
-print('新方法时间：%f，老方法时间：%f' %(p1-begin,p2-p1))
+
 input()
 
