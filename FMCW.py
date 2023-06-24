@@ -34,14 +34,21 @@ class FMCW():
         self.path_in = "chirp_lr.wav"                    #测试音频        
         self.path_out = "record.wav"                   #录音音频
         ##  读
-        self.doc_frame_rate = 0                      #从文件获得帧率
+        self.doc_frame_rate = self.sample_rate       #从文件获得帧率
         self.doc_frame_nums =  0                     #从文件获得帧数
         self.nchannels = 0                           #从文件获取的声道数
 
         self.wave_t = np.ones(0)                    #输出声波
         self.wave_r = np.ones(0)                    #接收声波
-        self.wave_t_f = np.ones(0)                   #滤波后输出声波
-        self.wave_r_f = np.ones(0)               #滤波后接收声波
+        self.wave_t_f = np.ones(0)                  #滤波后输出声波
+        self.wave_r_f = np.ones(0)                  #滤波后接收声波
+
+        #滤波器文件
+        fl = self.chirp_l*2/self.doc_frame_rate
+        self.bl,self.al = signal.butter(8,fl,'bandpass')
+        fr = self.chirp_r*2/self.doc_frame_rate
+        self.br,self.ar = signal.butter(8,fr,'bandpass')
+
 
 
     #信号录制
@@ -86,13 +93,15 @@ class FMCW():
         wf.close()                              #关闭wave    
         self.wave_r = np.frombuffer(str_data, dtype=np.int16)
         self.wave_r = np.reshape(self.wave_r,[self.doc_frame_nums,self.nchannels]).astype(np.int64)
-        '''
-        plt.figure()
-        plt.subplot(2,1,1)
-        plt.specgram(self.wave_r[300*529:305*529,1],Fs = self.doc_frame_rate)
-        plt.subplot(2,1,2)
-        plt.specgram(self.wave_r[300*529:305*529,0],Fs = self.doc_frame_rate)
-        plt.show()'''
+
+        #滤波
+        size = list(np.shape(self.wave_r))
+        size[1]*=2
+        self.wave_r_f = np.zeros(size)
+        self.wave_r_f[:,0] = signal.filtfilt(self.bl,self.al,self.wave_r[:,0])
+        self.wave_r_f[:,2] = signal.filtfilt(self.br,self.ar,self.wave_r[:,0])
+        self.wave_r_f[:,1] = signal.filtfilt(self.bl,self.al,self.wave_r[:,1])
+        self.wave_r_f[:,3] = signal.filtfilt(self.br,self.ar,self.wave_r[:,1])
 
         return self.wave_r
 
@@ -112,33 +121,18 @@ class FMCW():
         str_data = wf.readframes(self.doc_frame_nums)
         self.wave_t= np.frombuffer(str_data, dtype=np.int16)
         self.wave_t = np.reshape(self.wave_t,[self.doc_frame_nums,nchannels]).astype(np.int64)
-        '''        
-        plt.figure()
-        plt.subplot(2,1,1)
-        plt.specgram(self.wave_t[:,1],Fs = doc_frame_rate)
-        plt.subplot(2,1,2)
-        plt.specgram(self.wave_t[:,0],Fs = doc_frame_rate)
-        plt.show()'''
+
+        #滤波
+        self.wave_t_f = np.zeros(np.shape(self.wave_t))
+        self.wave_t_f[:,0] = signal.filtfilt(self.bl,self.al,self.wave_t[:,0])
+        self.wave_t_f[:,1] = signal.filtfilt(self.br,self.ar,self.wave_t[:,1])
         wf.close()                              #关闭wave   
 
-    #滤波    
-    def filtre_bb(self):
-        fl = self.chirp_l*2/self.doc_frame_rate
-        bl,al = signal.butter(8,fl,'bandpass')
-        fr = self.chirp_r*2/self.doc_frame_rate
-        br,ar = signal.butter(8,fr,'bandpass')
-        self.wave_t_f = np.zeros(np.shape(self.wave_t))
-        self.wave_t_f[:,0] = signal.filtfilt(bl,al,self.wave_t[:,0])
-        self.wave_t_f[:,1] = signal.filtfilt(br,ar,self.wave_t[:,1])
-        size = list(np.shape(self.wave_r))
-        size[1]*=2
-        self.wave_r_f = np.zeros(size)
-        self.wave_r_f[:,0] = signal.filtfilt(bl,al,self.wave_r[:,0])
-        self.wave_r_f[:,2] = signal.filtfilt(br,ar,self.wave_r[:,0])
-        self.wave_r_f[:,1] = signal.filtfilt(bl,al,self.wave_r[:,1])
-        self.wave_r_f[:,3] = signal.filtfilt(br,ar,self.wave_r[:,1])
+    def load_refer_data(self,filename = r'npy\referwave.npy'):
+        #考虑到参考波（发射波）大部分时候不会发生变换，故可直接读取
+        self.wave_t_f = self.load(filename)
 
-        '''
+    def print_wave_f(self):
         plt.figure()
         plt.subplot(3,2,1)
         plt.specgram(self.wave_t_f[:,0],Fs = self.doc_frame_rate)
@@ -152,9 +146,8 @@ class FMCW():
         plt.specgram(self.wave_r_f[:,2],Fs = self.doc_frame_rate)
         plt.subplot(3,2,6)
         plt.specgram(self.wave_r_f[:,3],Fs = self.doc_frame_rate)
-        plt.show()'''
-
-        return 0
+        plt.show()
+        return
 
     #使用矩阵方法计算cc
     def cc_matrice(self,foi):
@@ -195,7 +188,7 @@ class FMCW():
 
         self.print_table(t_axe,d_axe,m_d_d,12,6)
 
-        return 0
+        return m_d_d
 
     def print_table(self,t_axe,d_axe,table,vmax = 8,vmin = 7):
         #输出一个三维的表格
@@ -233,26 +226,22 @@ class FMCW():
         plt.legend()
         plt.show()
 
+    def save(self,a,filename):
+        np.save(filename,a)
+    
+    def load(self,filename):
+        return np.load(filename)
+
 f = FMCW()
 
 #f.record_gene()
 #f.pandr()
 
 f.get_data()
-f.get_refer_data()
-f.filtre_bb()
+f.load_refer_data()
+f.print_wave_f()
 
-begin = time.time()
-f.distance_matrix()
-p1 = time.time()
-
-begin = time.time()
-r,lap = f.cc_matrice(f.unitaire(143))
-end1 = time.time()
-
-
-end2 = time.time()
-print('新方法时间：%f，老方法时间：%f' %(p1-begin,4*(end2-p1)))
+m_d_d = f.distance_matrix()
 
 
 input()
