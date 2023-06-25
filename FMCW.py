@@ -218,7 +218,7 @@ class FMCW():
         return m_d_d
 
     def print_table(self,t_axe,d_axe,table,vmax = 8.5,vmin = 7,save = False,show = True):
-        #输出一个三维的表格
+        #输出一个三维的表格，是否保存、是否输出
         plt.figure()
         plt.subplot(2,2,1)
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,0])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
