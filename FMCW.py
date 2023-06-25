@@ -189,7 +189,9 @@ class FMCW():
         m_d_d = np.diff(m_d,axis = 1)
         for i in range(0,4):
             lap_i = np.argmax(m_d_d[:,:,i],axis = 0)
-            if np.shape(lap_i[lap_i>N])>np.shape(lap_i[lap_i<N]):
+            if np.mean(lap_i[lap_i>N])-np.mean(lap_i[lap_i<N]) <50:
+                lap = np.mean(lap_i).astype(int)
+            elif np.shape(lap_i[lap_i>N])>np.shape(lap_i[lap_i<N]):
                 lap = np.mean(lap_i[lap_i>N]).astype(int)
             else:
                 lap = np.mean(lap_i[lap_i<N]).astype(int)
@@ -206,8 +208,8 @@ class FMCW():
         plt.legend()
         plt.show()'''
 
-        self.print_table(t_axe,dn_axe,m_d_d[:,:],12,10)
-        self.print_table(t_axe,d_axe,m_d_d_2[:,:],12,10)
+        self.print_table(t_axe,dn_axe,m_d_d[:,:],13,10.3)
+        self.print_table(t_axe,d_axe,m_d_d_2[:,:],13,10.3)
 
         return m_d_d
 
@@ -221,10 +223,10 @@ class FMCW():
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,1])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_hf')
         plt.subplot(2,2,3)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax+0.3,vmin = vmin+0.3,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('2:left_bf')
         plt.subplot(2,2,4)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax+0.3,vmin = vmin+0.3,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_bf')
         plt.show()
 
