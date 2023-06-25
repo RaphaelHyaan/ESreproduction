@@ -32,8 +32,9 @@ class FMCW():
         ##  写
 
         ### 保存路径
-        self.path_in = "chirp_lr_17000_18000_15000_16000.wav"                    #测试音频        
-        self.path_out = pathout                          #录音音频
+        self.path_in = "chirp_lr_17000_18000_15000_16000.wav"                    #测试音频   
+        self.name = pathout     
+        self.path_out = 'data/wav/'+pathout+'.wav'                       #录音音频
         ##  读
         self.doc_frame_rate = self.sample_rate       #从文件获得帧率
         self.doc_frame_nums =  0                     #从文件获得帧数
@@ -208,12 +209,13 @@ class FMCW():
         plt.legend()
         plt.show()'''
 
-        self.print_table(t_axe,dn_axe,m_d_d[:,:],13,10.3)
-        self.print_table(t_axe,d_axe,m_d_d_2[:,:],13,10.3)
+        #self.print_table(t_axe,dn_axe,m_d[:,1:],15,12.3)
+        #self.print_table(t_axe,dn_axe,m_d_d[:,:],11,10)
+        self.print_table(t_axe,d_axe,m_d_d_2[:,:],11,10,save = True)
 
         return m_d_d
 
-    def print_table(self,t_axe,d_axe,table,vmax = 8.5,vmin = 7):
+    def print_table(self,t_axe,d_axe,table,vmax = 8.5,vmin = 7,save = False):
         #输出一个三维的表格
         plt.figure()
         plt.subplot(2,2,1)
@@ -228,6 +230,8 @@ class FMCW():
         plt.subplot(2,2,4)
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax+0.3,vmin = vmin+0.3,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_bf')
+        if save:
+            plt.savefig('data/image/'+self.name+'.jpg', dpi=300)
         plt.show()
 
     def print_list(self,list,title = ['左侧高频信号','右侧高频信号','左侧低频信号','右侧低频信号'],label = [1,2,3,4]):
@@ -255,7 +259,7 @@ class FMCW():
     def load(self,filename):
         return np.load(filename)
 
-f = FMCW('wav/one02.wav')
+f = FMCW('one_15')
 
 #f.record_gene()
 f.pandr()
@@ -264,7 +268,7 @@ f.get_data()
 f.get_refer_data()
 
 m_d_d = f.distance_matrix()
-
+f.save(m_d_d,'data/npy/'+f.name+'.npy')
 
 input()
 
