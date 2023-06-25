@@ -70,6 +70,8 @@ class FMCW():
  
         data = wf_i.readframes(self.chirp_last)  # 读数据
         for i in range(0, self.chirp_nums):
+            if i == self.remove_nums:
+                print('*')
             stream.write(data)
             datao = stream.read(self.chirp_last,exception_on_overflow = False)
             wf.writeframes(datao)  # 写入数据     
@@ -211,11 +213,11 @@ class FMCW():
 
         #self.print_table(t_axe,dn_axe,m_d[:,1:],15,12.3)
         #self.print_table(t_axe,dn_axe,m_d_d[:,:],11,10)
-        self.print_table(t_axe,d_axe,m_d_d_2[:,:],11,10,save = True)
+        self.print_table(t_axe,d_axe,m_d_d_2[:,:],11,10,save = True,show = False)
 
         return m_d_d
 
-    def print_table(self,t_axe,d_axe,table,vmax = 8.5,vmin = 7,save = False):
+    def print_table(self,t_axe,d_axe,table,vmax = 8.5,vmin = 7,save = False,show = True):
         #输出一个三维的表格
         plt.figure()
         plt.subplot(2,2,1)
@@ -232,7 +234,9 @@ class FMCW():
         plt.title('1:right_bf')
         if save:
             plt.savefig('data/image/'+self.name+'.jpg', dpi=300)
-        plt.show()
+        if show:
+            plt.show()
+        plt.close()
 
     def print_list(self,list,title = ['左侧高频信号','右侧高频信号','左侧低频信号','右侧低频信号'],label = [1,2,3,4]):
         plt.figure()
@@ -258,17 +262,28 @@ class FMCW():
     
     def load(self,filename):
         return np.load(filename)
+    
+    def record(self,begin,end,name):
+        '''
+        begin: 开始时的序号;
+        end:结束时的序号，
+        name 系列名字'''
+        
+        for i in range(begin,end+1):
+            print(i-begin+1)
+            self.name = name+str(i)
+            self.path_out = 'data/wav/'+self.name+'.wav'
+            f.pandr()
+            f.get_data()
+            f.get_refer_data()
+            m_d_d = f.distance_matrix()
+            f.save(m_d_d,'data/npy/'+f.name+'.npy')
 
-f = FMCW('one_15')
 
-#f.record_gene()
-f.pandr()
 
-f.get_data()
-f.get_refer_data()
+f = FMCW('nihao')
 
-m_d_d = f.distance_matrix()
-f.save(m_d_d,'data/npy/'+f.name+'.npy')
+f.record(1,40,f.name)
 
-input()
+
 
