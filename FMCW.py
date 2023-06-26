@@ -32,7 +32,7 @@ class FMCW():
         ##  写
 
         ### 保存路径
-        self.path_in = "chirp_lr_17000_18000_15000_16000.wav"                    #测试音频   
+        self.path_in = "chirp/chirp_lr_17000_18000_15000_16000.wav"                    #测试音频   
         self.name = pathout     
         self.path_out = 'data/wav/'+pathout+'.wav'                       #录音音频
         ##  读
