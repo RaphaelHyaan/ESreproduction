@@ -6,6 +6,7 @@ import time
 import struct
 import scipy.signal as signal
 import os
+from PIL import Image
 
 class FMCW():
 
@@ -214,27 +215,44 @@ class FMCW():
 
         #self.print_table(t_axe,dn_axe,m_d[:,1:],15,12.3)
         #self.print_table(t_axe,dn_axe,m_d_d[:,:],11,10)
-        self.print_table(t_axe,d_axe,m_d_d_2[:,:],11,10,save = True,show = False)
+        self.print_table(t_axe,d_axe,m_d_d_2[:,:],12,10,save = True,show = False)
 
-        return m_d_d
+        return m_d_d_2
 
-    def print_table(self,t_axe,d_axe,table,vmax = 8.5,vmin = 7,save = False,show = True):
+    def print_table(self,t_axe,d_axe,table,vmax = 12,vmin = 10,mod_max = -0.8,mod_min = 0,save = False,show = True,cmap = 'jet'):
         #输出一个三维的表格，是否保存、是否输出
-        plt.figure()
-        plt.subplot(2,2,1)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,0])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
+        #mod:对高频信号和低频信号强度不同的修正
+        #plt.figure()
+       
+        
+        for i in range(0,4):
+            if i >=2:
+                vmax += mod_max
+                vmin += mod_min
+            ax = plt.figure()
+            plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,i])),vmax = vmax,vmin = vmin,cmap=cmap,norm="log",shading =  'gouraud')
+            plt.axis('off')   # 去坐标轴
+            plt.xticks([])    # 去 x 轴刻度
+            plt.yticks([])    # 去 y 轴刻度
+            if save:
+                plt.savefig('data/image/'+self.name+'_0'+str(i)+'.jpg', dpi=300, bbox_inches='tight', pad_inches = -0.1)
+            if show:
+                plt.show()
+            plt.close()
+        '''
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,0])),vmax = vmax,vmin = vmin,cmap=cmap,norm="log",shading =  'gouraud')
         plt.title('0:left_hf')
         plt.subplot(2,2,2)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,1])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,1])),vmax = vmax,vmin = vmin,cmap=cmap,norm="log",shading =  'gouraud')
         plt.title('1:right_hf')
         plt.subplot(2,2,3)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax+0.3,vmin = vmin+0.3,cmap='jet',norm="log",shading =  'gouraud')
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax+mod_max,vmin = vmin+mod_min,cmap=cmap,norm="log",shading =  'gouraud')
         plt.title('2:left_bf')
         plt.subplot(2,2,4)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax+0.3,vmin = vmin+0.3,cmap='jet',norm="log",shading =  'gouraud')
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax+mod_max,vmin = vmin+mod_min,cmap=cmap,norm="log",shading =  'gouraud')
         plt.title('1:right_bf')
         if save:
-            plt.savefig('data/image/'+self.name+'.jpg', dpi=300)
+            plt.savefig('data/image/'+self.name+'.jpg', dpi=300, bbox_inches='tight')'''
         if show:
             plt.show()
         plt.close()
@@ -273,6 +291,30 @@ class FMCW():
         self.name = self.name+'/'+self.name
         return 0
 
+    def analyse(self,filename):
+        #从现有的npy文件获得图片
+        N =self.chirp_last
+        t_axe = np.linspace(0,(self.chirp_nums-self.remove_nums)*N/self.sample_rate,self.chirp_nums-self.remove_nums-1)
+        c_axe = np.linspace(-100,100,201)
+        cn_axe = np.linspace(-N+1,N,2*N-1)
+        d_axe = c_axe*self.c/(2*self.sample_rate)
+        dn_axe= cn_axe*self.c/(2*self.sample_rate)
+        m_d_d = f.load(r'data/npy/'+filename)
+        m_d_d_2 = np.zeros((201,self.chirp_nums-self.remove_nums-1,4))
+
+        for i in range(0,4):
+            lap_i = np.argmax(m_d_d[:,:,i],axis = 0)
+            if np.mean(lap_i[lap_i>N])-np.mean(lap_i[lap_i<N]) <50:
+                lap = np.mean(lap_i).astype(int)
+            elif np.shape(lap_i[lap_i>N])>np.shape(lap_i[lap_i<N]):
+                lap = np.mean(lap_i[lap_i>N]).astype(int)
+            else:
+                lap = np.mean(lap_i[lap_i<N]).astype(int)
+            m_d_d_2[:,:,i] = m_d_d[lap-100:lap+101,:,i]
+
+        #self.print_table(t_axe,dn_axe,m_d_d[:,:],11,10,save = False,show = True)
+        self.print_table(t_axe,d_axe,m_d_d_2[:,:],12,9.5,save = True,show = False,mod_max = -0.8,mod_min = 0,cmap = 'gray')
+        print(filename)
     
     def record(self,begin,end):
         '''
@@ -293,11 +335,29 @@ class FMCW():
             m_d_d = self.distance_matrix()
             self.save(m_d_d,'data/npy/'+self.name+'.npy')
 
+    def tran_gray(self,name):
+        path = 'data/npy/'+name
+        #path文件夹下npy文件转化为灰度图
+        for i in os.listdir(path):
+            names = i.split('.')
+            self.name = name+'/'+names[0]
+            self.analyse(name + '/'+i)
+
 
 
 f = FMCW('测试')
 
-f.record(1,2)
+#f.analyse(r'data\npy\nihao\nihao21.npy')
+
+f.tran_gray('hujiao')
+f.tran_gray('jieshu')
+f.tran_gray('jishi')
+f.tran_gray('kaishi')
+f.tran_gray('naozhong')
+f.tran_gray('nihao')
+f.tran_gray('tingzhi')
+
+#f.record(1,2)
 
 
 
