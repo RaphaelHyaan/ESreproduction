@@ -239,7 +239,7 @@ class FMCW():
             if show:
                 plt.show()
             plt.close()
-        '''
+        
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,0])),vmax = vmax,vmin = vmin,cmap=cmap,norm="log",shading =  'gouraud')
         plt.title('0:left_hf')
         plt.subplot(2,2,2)
@@ -252,7 +252,7 @@ class FMCW():
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax+mod_max,vmin = vmin+mod_min,cmap=cmap,norm="log",shading =  'gouraud')
         plt.title('1:right_bf')
         if save:
-            plt.savefig('data/image/'+self.name+'.jpg', dpi=300, bbox_inches='tight')'''
+            plt.savefig('data/image/'+self.name+'.jpg', dpi=300, bbox_inches='tight')
         if show:
             plt.show()
         plt.close()
@@ -344,20 +344,11 @@ class FMCW():
             self.analyse(name + '/'+i)
 
 
+#【发送】【打开】【关闭】【音量】【关机】
+f = FMCW('发送')
 
-f = FMCW('测试')
 
-#f.analyse(r'data\npy\nihao\nihao21.npy')
-
-f.tran_gray('hujiao')
-f.tran_gray('jieshu')
-f.tran_gray('jishi')
-f.tran_gray('kaishi')
-f.tran_gray('naozhong')
-f.tran_gray('nihao')
-f.tran_gray('tingzhi')
-
-#f.record(1,2)
+f.record(1,40)
 
 
 
