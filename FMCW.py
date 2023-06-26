@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import time
 import struct
 import scipy.signal as signal
+import os
 
 class FMCW():
 
@@ -263,27 +264,40 @@ class FMCW():
     def load(self,filename):
         return np.load(filename)
     
-    def record(self,begin,end,name):
+    def mkdir(self,types = ['wav','npy','image']):
+        for type in types:
+            path = 'data/'+type+'/'+self.name
+            pe = os.path.exists(path)
+            if not pe:
+                os.makedirs(path)
+        self.name = self.name+'/'+self.name
+        return 0
+
+    
+    def record(self,begin,end):
         '''
         begin: 开始时的序号;
         end:结束时的序号，
         name 系列名字'''
+        self.mkdir()
+        name =self.name
         
         for i in range(begin,end+1):
             print(i-begin+1)
             self.name = name+str(i)
             self.path_out = 'data/wav/'+self.name+'.wav'
-            f.pandr()
-            f.get_data()
-            f.get_refer_data()
-            m_d_d = f.distance_matrix()
-            f.save(m_d_d,'data/npy/'+f.name+'.npy')
+            self.pandr()
+            self.get_data()
+            self.get_refer_data()
+            
+            m_d_d = self.distance_matrix()
+            self.save(m_d_d,'data/npy/'+self.name+'.npy')
 
 
 
-f = FMCW('nihao')
+f = FMCW('测试')
 
-f.record(1,40,f.name)
+f.record(1,2)
 
 
 
