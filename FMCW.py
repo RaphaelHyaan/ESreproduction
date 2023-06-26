@@ -171,7 +171,7 @@ class FMCW():
         return r2,lag2
 
     #计算距离
-    def distance_matrix(self):
+    def distance_matrix(self,image = False):
         N =self.chirp_last
         m_r = np.zeros((2*N-1,self.chirp_nums-self.remove_nums,4))
         m_d = np.zeros((2*N-1,self.chirp_nums-self.remove_nums,4))
@@ -215,16 +215,33 @@ class FMCW():
 
         #self.print_table(t_axe,dn_axe,m_d[:,1:],15,12.3)
         #self.print_table(t_axe,dn_axe,m_d_d[:,:],11,10)
-        self.print_table(t_axe,d_axe,m_d_d_2[:,:],12,10,save = True,show = False)
+        if image:
+            self.print_table(t_axe,d_axe,m_d_d_2[:,:],12,9.5,save = True,show = False,mod_max = -0.8,mod_min = 0,cmap = 'gray')
 
-        return m_d_d_2
+        return m_d_d
 
     def print_table(self,t_axe,d_axe,table,vmax = 12,vmin = 10,mod_max = -0.8,mod_min = 0,save = False,show = True,cmap = 'jet'):
         #输出一个三维的表格，是否保存、是否输出
         #mod:对高频信号和低频信号强度不同的修正
         #plt.figure()
-       
-        
+        plt.subplot(2,2,1)
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,0])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
+        plt.title('0:left_hf')
+        plt.subplot(2,2,2)
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,1])),vmax = vmax,vmin = vmin,cmap='jet',norm="log",shading =  'gouraud')
+        plt.title('1:right_hf')
+        plt.subplot(2,2,3)
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax+mod_max,vmin = vmin+mod_min,cmap='jet',norm="log",shading =  'gouraud')
+        plt.title('2:left_bf')
+        plt.subplot(2,2,4)
+        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax+mod_max,vmin = vmin+mod_min,cmap='jet',norm="log",shading =  'gouraud')
+        plt.title('1:right_bf')
+        if save:
+            plt.savefig('data/image/'+self.name+'.jpg', dpi=300, bbox_inches='tight')
+        if show:
+            plt.show()
+        plt.close()
+
         for i in range(0,4):
             if i >=2:
                 vmax += mod_max
@@ -239,23 +256,6 @@ class FMCW():
             if show:
                 plt.show()
             plt.close()
-        
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,0])),vmax = vmax,vmin = vmin,cmap=cmap,norm="log",shading =  'gouraud')
-        plt.title('0:left_hf')
-        plt.subplot(2,2,2)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,1])),vmax = vmax,vmin = vmin,cmap=cmap,norm="log",shading =  'gouraud')
-        plt.title('1:right_hf')
-        plt.subplot(2,2,3)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,2])),vmax = vmax+mod_max,vmin = vmin+mod_min,cmap=cmap,norm="log",shading =  'gouraud')
-        plt.title('2:left_bf')
-        plt.subplot(2,2,4)
-        plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax+mod_max,vmin = vmin+mod_min,cmap=cmap,norm="log",shading =  'gouraud')
-        plt.title('1:right_bf')
-        if save:
-            plt.savefig('data/image/'+self.name+'.jpg', dpi=300, bbox_inches='tight')
-        if show:
-            plt.show()
-        plt.close()
 
     def print_list(self,list,title = ['左侧高频信号','右侧高频信号','左侧低频信号','右侧低频信号'],label = [1,2,3,4]):
         plt.figure()
@@ -316,7 +316,7 @@ class FMCW():
         self.print_table(t_axe,d_axe,m_d_d_2[:,:],12,9.5,save = True,show = False,mod_max = -0.8,mod_min = 0,cmap = 'gray')
         print(filename)
     
-    def record(self,begin,end):
+    def record(self,begin,end,image = False):
         '''
         begin: 开始时的序号;
         end:结束时的序号，
@@ -332,7 +332,7 @@ class FMCW():
             self.get_data()
             self.get_refer_data()
             
-            m_d_d = self.distance_matrix()
+            m_d_d = self.distance_matrix(image)
             self.save(m_d_d,'data/npy/'+self.name+'.npy')
 
     def tran_gray(self,name):
@@ -344,11 +344,11 @@ class FMCW():
             self.analyse(name + '/'+i)
 
 
-#【发送】【打开】【关闭】【音量】【关机】
-f = FMCW('发送')
+#【发送】【打开】【开机】【音量】【关机】
+f = FMCW('kaiji')
 
 
-f.record(1,40)
+f.record(1,40,False)
 
 
 
