@@ -344,8 +344,19 @@ class FMCW():
             self.analyse(name + '/'+i)
 
 
-#【发送】【打开】【开机】【音量】【关机】
-f = FMCW('kaiji')
+
+f = FMCW('测试')
+
+f.tran_gray('guanji')
+f.tran_gray('hujiao')
+f.tran_gray('jieshu')
+f.tran_gray('jishi')
+f.tran_gray('kaiji')
+f.tran_gray('kaishi')
+f.tran_gray('naozhong')
+f.tran_gray('nihao')
+f.tran_gray('tingzhi')
+f.tran_gray('yinliang')
 
 
 f.record(1,40,False)
