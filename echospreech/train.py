@@ -4,7 +4,7 @@ import torch.optim as optim
 from torchvision import transforms
 from dataset import MNISTDataset
 #from models.resnet import resnet50
-from models.lenet_2 import LeNet
+from models.lenet import LeNet
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("将使用%s训练" %(device))
@@ -35,9 +35,11 @@ for epoch in range(epochs):
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
-        if (i + 1) % 1 == 0:
-            print('[epoch: %d, iter: %d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
-            running_loss = 0.0
+        if (i + 1) % 13 == 0:
+            print('[epoch: %d, iter: %d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 13))
+            #running_loss = 0.0
+    if running_loss <= 0.001:
+        break
 torch.save(model.state_dict(), 'echospreech/ckpt/mnist_lenet_02.pth')
 #torch.save(model.state_dict(), 'mnist_cnn/ckpt/mnist_resnet.pth')
 
