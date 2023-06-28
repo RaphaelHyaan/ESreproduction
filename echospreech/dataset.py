@@ -2,6 +2,7 @@ import os
 from PIL import Image
 from torch.utils.data import Dataset
 import torch
+import torchvision.transforms as transforms
 
 class MNISTDataset(Dataset):
     def __init__(self, root_dir, transform=None, train=True):
@@ -15,6 +16,7 @@ class MNISTDataset(Dataset):
         self.image_paths = []
         self.labels = []
         self.label = {}
+        self.resize = transforms.Resize((119,119))
         
         # 获取所有图像文件路径和对应的标签
         i = 0
@@ -41,11 +43,13 @@ class MNISTDataset(Dataset):
         images = []
         for i in range(4):
             image = Image.open(image_path[i]).convert('L')
+            
             images.append(image)
         
         if self.transform is not None:
             for i in range(4):
-                images[i] = self.transform(images[i])
+                images[i] = self.resize(images[i])
+                images[i] = self.transform(images[i])#在训练之前压缩图片
         images = torch.cat(images,dim = 0)
         #这里暂时先默认使用totenser，如果将来要换为其他转化器，需要自己编写转换器而将这部分代码还原回最开始的形态
         
