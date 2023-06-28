@@ -16,5 +16,3 @@ def images(root_dir):
                         image = Image.open(image_path).convert('L')
                         image = resize(image)
                         image.save(image_path)
-
-images('echospreech\images_s\\test')

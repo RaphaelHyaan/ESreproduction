@@ -11,14 +11,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 #device = torch.device('cpu') 
 
 # 数据集
-test_dataset = MNISTDataset('echospreech/images', train=False, transform=transforms.ToTensor())
+test_dataset = MNISTDataset('echospreech/images_s', train=False, transform=transforms.ToTensor())
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=16, shuffle=False)
 
 # 模型和权重
 model = LeNet().to(device)
 #model = resnet50(num_classes=10).to(device)
 #model.load_state_dict(torch.load('mnist_cnn/ckpt/mnist_resnet50.pth', map_location=device))
-model.load_state_dict(torch.load('echospreech/ckpt/es_lenet_0913.pth', map_location=device))
+model.load_state_dict(torch.load('echospreech/ckpt/es_lenet_1304.pth', map_location=device))
 # 测试
 correct = 0
 total = 0
@@ -37,6 +37,3 @@ with torch.no_grad():
         print('crorrect:%d; total:%d' %(correct, total))
 
 print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
-plt.figure()
-plt.pcolormesh(table)
-plt.show()
