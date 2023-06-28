@@ -17,14 +17,14 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle
 # 模型
 #model = resnet50(num_classes=10).to(device)
 model = LeNet().to(device)
-model.load_state_dict(torch.load('echospreech/ckpt/es_lenet_0912.pth', map_location=device))
+#model.load_state_dict(torch.load('echospreech/ckpt/es_lenet_0912.pth', map_location=device))
 
 # 损失函数和优化器
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=0.00001, momentum=0.9)
 
 # 训练
-epochs = 30
+epochs = 100
 for epoch in range(epochs):
     running_loss = 0.0
     for i, data in enumerate(train_loader, 0):
