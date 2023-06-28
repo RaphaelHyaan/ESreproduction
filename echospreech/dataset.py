@@ -17,8 +17,9 @@ class MNISTDataset(Dataset):
         self.label = {}
         
         # 获取所有图像文件路径和对应的标签
+        i = 0
         for label in os.listdir(root_dir):
-            i = 0
+            
             label_dir = os.path.join(root_dir, label)
             if os.path.isdir(label_dir):
                 for sample_name in os.listdir(label_dir):
