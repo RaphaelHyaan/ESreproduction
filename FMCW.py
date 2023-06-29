@@ -409,7 +409,7 @@ class FMCW():
         self.save(m_d_d,'data/npy/'+self.name+str(i)+'.npy')
         return m_d_d
 
-f = FMCW('测试')
+f = FMCW('zhunbei')
 f.c_record(20)
 '''
 f.c_partition(10)
