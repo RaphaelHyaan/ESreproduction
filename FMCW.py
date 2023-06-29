@@ -374,12 +374,12 @@ class FMCW():
         data = wf_i.readframes(self.chirp_last)  # 读数据
         for i in range(0, self.cycle_num*(num_recode+2)+self.inter_num):#多两个num_record用于调整，多一个inter_num
             if i == self.inter_num:
-                print('现在开始测量，请张开嘴，以校正距离')
+                print('现在开始测量，请重复张开嘴，以校正距离')
             if i == self.inter_num+self.cycle_num:
-                print('现在请闭合嘴巴，准备开始测量')
-            if i-self.inter_num+2*self.cycle_num % self.cycle_num == 0:
+                print('现在请准备开始测量')
+            if (i-self.inter_num-2*self.cycle_num) % self.cycle_num  == 0 and i-self.inter_num-2*self.cycle_num>0:
                 print('准备')
-            if i-self.inter_num+2*self.cycle_num % self.cycle_num == 0:
+            if (i-self.inter_num-2*self.cycle_num) % self.cycle_num == 50 and i-self.inter_num-2*self.cycle_num>0:
                 print('开始')
             stream.write(data)
             datao = stream.read(self.chirp_last,exception_on_overflow = False)
@@ -405,7 +405,8 @@ class FMCW():
         pass
 
 f = FMCW('测试')
-
+f.c_record(10)
+'''
 f.tran_gray('guanji')
 f.tran_gray('hujiao')
 f.tran_gray('jieshu')
@@ -418,7 +419,7 @@ f.tran_gray('tingzhi')
 f.tran_gray('yinliang')
 
 
-f.record(1,40,False)
+f.record(1,40,False)'''
 
 
 
