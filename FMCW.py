@@ -58,6 +58,7 @@ class FMCW():
         self.inter_num = 50
         self.cycle_num = 200
         self.num_recode = 0
+        self.wave_total = np.zeros((self.num_recode,4,self.cycle_num))
 
 
 
@@ -394,7 +395,8 @@ class FMCW():
         self.get_data()
 
         ## 分割信号,得到(self.num_record,4,self.cycle-num_self.self.inter_num)的信号数组
-        
+        self.wave_total = np.zeros((self.num_recode,4,self.cycle_num))
+
 
         pass
 

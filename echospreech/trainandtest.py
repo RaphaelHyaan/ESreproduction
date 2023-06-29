@@ -76,8 +76,8 @@ def train(foi,name,epochs = 10):
     criterion = nn.CrossEntropyLoss()
     #optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
     optimizer = optim.Adam(model.parameters(), lr=0.01)
-    #lr_lambda = lambda epoch: 0.01-epoch*(0.01-0.0001)/(epochs*1.0)
-    #scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer,lr_lambda=lr_lambda)
+    lr_lambda = lambda epoch: 0.01-epoch*(0.01-0.0001)/(epochs*1.0)
+    scheduler = optim.lr_scheduler.LambdaLR(optimizer=optimizer,lr_lambda=lr_lambda)
     for epoch in range(epochs):
 
 
@@ -101,7 +101,7 @@ def train(foi,name,epochs = 10):
                 la.append(c)
                 running_loss = 0.0
         #print("第%d个epoch的学习率：%f" % (epoch, optimizer.param_groups[0]['lr']))
-        #scheduler.step()
+        scheduler.step()
         
     torch.save(model.state_dict(), 'echospreech/ckpt/es_lenet_150'+str(foi)+'.pth')
     #torch.save(model.state_dict(), 'mnist_cnn/ckpt/mnist_resnet.pth')
@@ -123,15 +123,16 @@ def train(foi,name,epochs = 10):
     return table,c
 
 
-for i in range(100):
+for i in range(10):
+    name = 'resnet18_12_s_Adam_sch_'
     model = resnet18(num_classes=num_classe).to(device)
-    table1,c1 = train(i,'resnet18_15_s_1_',25)
+    table1,c1 = train(i,name,12)
     table += table1
     c += c1
     plt.figure()
     plt.pcolormesh(names,names,table)
-    plt.title('accuracy:%.5f'%(c/100))
-    plt.savefig('table'+'resnet18_15_s_2_'+'.jpg',dpi = 300)
+    plt.title('accuracy:%.5f'%(c/10))
+    plt.savefig('table'+name+'.jpg',dpi = 300)
     plt.close
 
 print('Finished Training')
