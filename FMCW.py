@@ -24,7 +24,7 @@ class FMCW():
         self.chirp_last = int(self.swept_last*self.sample_rate)     #每次扫频采样次数
 
         self.chirp_nums = 200                          #播放的啁啾数
-        self.remove_nums = 42                           #去除头部的样本数
+        self.remove_nums = 50                           #去除头部的样本数
         self.chirp_l = np.array([17000,18000])          #左声道啁啾频率区间
         self.chirp_r = np.array([15000,16000])          #右声道啁啾频率区间
 
@@ -388,24 +388,33 @@ class FMCW():
         p.terminate()
         wf.close()
 
-    def c_analyse(self,offset = [0,0,0,0]):
+    def c_partition(self,num_recode,offset = [0,0,0,0]):
+        self.num_recode = num_recode
         #根据测得的连续数据生成图片
 
         ## 加载信号,得到self.wave_r_f
-        self.get_data()
+        self.get_data(T = 1)
+        self.get_refer_data()
 
         ## 分割信号,得到(self.num_record,4,self.cycle-num_self.self.inter_num)的信号数组
-        self.wave_total = np.zeros((self.num_recode,4,self.cycle_num))
+        self.wave_total = np.zeros((self.num_recode,4,self.cycle_num*self.chirp_last))
+        for i in range(4):
+            self.wave_total[:,i,:] = np.reshape(self.wave_r_f[i,offset[i]:offset[i]+self.num_recode*self.cycle_num*self.chirp_last],(self.num_recode,self.cycle_num*self.chirp_last))
 
 
-        pass
-
-    def c_test(self,wave_r,wave_t,offset = [0,0,0,0]):
-        #随机生成5幅图片和开头的两端测试，以检验效果
-        pass
+    def c_test(self,i,image = False):
+        #生成第i幅图,对第i个信号分别分析
+        self.wave_r_f = self.wave_total[i].T
+        m_d_d = self.distance_matrix(image)
+        self.save(m_d_d,'data/npy/'+self.name+str(i)+'.npy')
+        return m_d_d
 
 f = FMCW('测试')
-f.c_record(10)
+f.c_record(20)
+'''
+f.c_partition(10)
+f.c_test(5,True)
+'''
 '''
 f.tran_gray('guanji')
 f.tran_gray('hujiao')
