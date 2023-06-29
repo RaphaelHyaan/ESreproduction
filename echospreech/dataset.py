@@ -32,8 +32,9 @@ class MNISTDataset(Dataset):
                             sample_image.append(image_path)
                         self.image_paths.append(sample_image)
                         self.labels.append(i)
-            self.label[label] = i
+            self.label[i] = label
             i+=1 
+        
     def __len__(self):
         return len(self.image_paths)
     

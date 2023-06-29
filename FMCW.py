@@ -53,6 +53,12 @@ class FMCW():
         fr = self.chirp_r*2/self.doc_frame_rate
         self.br,self.ar = signal.butter(8,fr,'bandpass')
 
+        #连续录制
+        self.record_num = 150
+        self.inter_num = 50
+        self.cycle_num = 200
+        self.num_recode = 0
+
 
 
     #信号录制
@@ -81,11 +87,10 @@ class FMCW():
         p.terminate()
         wf.close()
 
-        pass
 
     #获得波
-    def get_data(self):
-        #获取数据
+    def get_data(self,T = None):
+        #获取数据,T是否转置
         wavfile = self.path_out
         wf=wave.open(wavfile,"rb")              #打开wav
         p = pyaudio.PyAudio()                   #创建PyAudio对象
@@ -110,10 +115,13 @@ class FMCW():
         self.wave_r_f[:,1] = signal.filtfilt(self.bl,self.al,self.wave_r[:,1])
         self.wave_r_f[:,3] = signal.filtfilt(self.br,self.ar,self.wave_r[:,1])
 
+        if T is not None:
+            self.wave_r_f = self.wave_r_f.T
+
         return self.wave_r
 
     #获得参考波
-    def get_refer_data(self):
+    def get_refer_data(self,T = None):
         #获取数据
         wavfile = self.path_in
         wf=wave.open(wavfile,"rb")              #打开wav
@@ -134,6 +142,8 @@ class FMCW():
         #self.wave_t_f[:,0] = signal.filtfilt(self.bl,self.al,self.wave_t[:,0])
         #self.wave_t_f[:,1] = signal.filtfilt(self.br,self.ar,self.wave_t[:,1])
         self.wave_t_f = self.wave_t
+        if T is not None:
+            self.wave_t_f = self.wave_t_f.T
         wf.close()                              #关闭wave   
 
     def load_refer_data(self,filename = r'npy\referwave.npy'):
@@ -343,7 +353,54 @@ class FMCW():
             self.name = name+'/'+names[0]
             self.analyse(name + '/'+i)
 
+    def c_record(self,num_recode):
+        self.num_recode =num_recode
+        #连续录制
+        #前2个self.cycle_num和1个self.inter_num用来消除开始的误差和校正距离；之后没cycle_num一个周期，前inter_num作为间隔
+        p = pyaudio.PyAudio()
+        stream = p.open(format=p.get_format_from_width(2),
+                        channels=2,
+                        rate=int(self.sample_rate),
+                        input=True,
+                        output=True,
+                        frames_per_buffer=self.chunk)
+        wf_i = wave.open(self.path_in, 'rb')  # 读 wav 文件
+        wf = wave.open(self.path_out, 'wb')  # 打开 wav 文件。
+        wf.setnchannels(2)  # 声道设置
+        wf.setsampwidth(p.get_sample_size(self.format))  # 采样位数设置
+        wf.setframerate(self.sample_rate)  # 采样频率设置
+ 
+        data = wf_i.readframes(self.chirp_last)  # 读数据
+        for i in range(0, self.cycle_num*(num_recode+2)+self.inter_num):#多两个num_record用于调整，多一个inter_num
+            if i == self.inter_num:
+                print('现在开始测量，请张开嘴，以校正距离')
+            if i == self.inter_num+self.cycle_num:
+                print('现在请闭合嘴巴，准备开始测量')
+            if i-self.inter_num+2*self.cycle_num % self.cycle_num == 0:
+                print('准备')
+            if i-self.inter_num+2*self.cycle_num % self.cycle_num == 0:
+                print('开始')
+            stream.write(data)
+            datao = stream.read(self.chirp_last,exception_on_overflow = False)
+            wf.writeframes(datao)  # 写入数据
+        stream.close()
+        p.terminate()
+        wf.close()
 
+    def c_analyse(self,offset = [0,0,0,0]):
+        #根据测得的连续数据生成图片
+
+        ## 加载信号,得到self.wave_r_f
+        self.get_data()
+
+        ## 分割信号,得到(self.num_record,4,self.cycle-num_self.self.inter_num)的信号数组
+        
+
+        pass
+
+    def c_test(self,wave_r,wave_t,offset = [0,0,0,0]):
+        #随机生成5幅图片和开头的两端测试，以检验效果
+        pass
 
 f = FMCW('测试')
 
