@@ -35,7 +35,8 @@ class FMCW():
 
         ### 保存路径
         self.path_in = "chirp/chirp_lr_17000_18000_15000_16000.wav"                    #测试音频   
-        self.name = pathout     
+        self.name = pathout
+        self.save_name = ''
         self.path_out = 'data/wav/'+pathout+'.wav'                       #录音音频
         ##  读
         self.doc_frame_rate = self.sample_rate       #从文件获得帧率
@@ -54,11 +55,13 @@ class FMCW():
         self.br,self.ar = signal.butter(8,fr,'bandpass')
 
         #连续录制
-        self.record_num = 150
-        self.inter_num = 50
-        self.cycle_num = 200
+        self.num_record = 150
+        self.num_inter = 50
+        self.num_cycle = 200
         self.num_recode = 0
-        self.wave_total = np.zeros((self.num_recode,4,self.cycle_num))
+        self.wave_total = np.zeros((self.num_recode,4,self.num_cycle))
+        self.wave_original = np.zeros(0)
+        self.offset = np.zeros(0)
 
 
 
@@ -83,6 +86,8 @@ class FMCW():
                 print('*')
             stream.write(data)
             datao = stream.read(self.chirp_last,exception_on_overflow = False)
+            #a = np.frombuffer(datao)在未来可尝试的改进方案
+
             wf.writeframes(datao)  # 写入数据     
         stream.close()
         p.terminate()
@@ -182,7 +187,7 @@ class FMCW():
         return r2,lag2
 
     #计算距离
-    def distance_matrix(self,image = False):
+    def distance_matrix(self,show = False,save = False):
         N =self.chirp_last
         m_r = np.zeros((2*N-1,self.chirp_nums-self.remove_nums,4))
         m_d = np.zeros((2*N-1,self.chirp_nums-self.remove_nums,4))
@@ -204,13 +209,15 @@ class FMCW():
 
         m_d_d = np.diff(m_d,axis = 1)
         for i in range(0,4):
+            '''
             lap_i = np.argmax(m_d_d[:,:,i],axis = 0)
             if np.mean(lap_i[lap_i>N])-np.mean(lap_i[lap_i<N]) <50:
                 lap = np.mean(lap_i).astype(int)
             elif np.shape(lap_i[lap_i>N])>np.shape(lap_i[lap_i<N]):
                 lap = np.mean(lap_i[lap_i>N]).astype(int)
             else:
-                lap = np.mean(lap_i[lap_i<N]).astype(int)
+                lap = np.mean(lap_i[lap_i<N]).astype(int)'''
+            lap = N
             m_d_d_2[:,:,i] = m_d_d[lap-100:lap+101,:,i]
         '''
         for i in range(self.chirp_nums-2):
@@ -225,9 +232,11 @@ class FMCW():
         plt.show()'''
 
         #self.print_table(t_axe,dn_axe,m_d[:,1:],15,12.3)
-        #self.print_table(t_axe,dn_axe,m_d_d[:,:],11,10)
-        if image:
-            self.print_table(t_axe,d_axe,m_d_d_2[:,:],12,9.5,save = True,show = False,mod_max = -0.8,mod_min = 0,cmap = 'gray')
+        #
+        if show or save:
+            #self.print_table(t_axe,d_axe,m_d_d_2[:,:],12,9.5,save = False,show = True,mod_max = -0.8,mod_min = 0,cmap = 'gray')
+            #self.print_table(t_axe,dn_axe,m_d_d[:,:],14,10,save = False,show = True,mod_max = -0.8,mod_min = 0,cmap = 'gray')
+            self.print_table(t_axe,d_axe,m_d_d_2[:,:],13,10,save = save,show = show,mod_max = -0.8,mod_min = 0,cmap = 'gray')
 
         return m_d_d
 
@@ -247,26 +256,29 @@ class FMCW():
         plt.subplot(2,2,4)
         plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,3])),vmax = vmax+mod_max,vmin = vmin+mod_min,cmap='jet',norm="log",shading =  'gouraud')
         plt.title('1:right_bf')
+        '''
         if save:
-            plt.savefig('data/image/'+self.name+'.jpg', dpi=300, bbox_inches='tight')
+            plt.savefig('data/image/'+self.savename+'.jpg', dpi=300, bbox_inches='tight')'''
         if show:
             plt.show()
-        plt.close()
-
-        for i in range(0,4):
-            if i >=2:
-                vmax += mod_max
-                vmin += mod_min
-            ax = plt.figure()
-            plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,i])),vmax = vmax,vmin = vmin,cmap=cmap,norm="log",shading =  'gouraud')
-            plt.axis('off')   # 去坐标轴
-            plt.xticks([])    # 去 x 轴刻度
-            plt.yticks([])    # 去 y 轴刻度
-            if save:
-                plt.savefig('data/image/'+self.name+'_0'+str(i)+'.jpg', dpi=300, bbox_inches='tight', pad_inches = -0.1)
-            if show:
-                plt.show()
-            plt.close()
+        #plt.close()
+        if save:
+            for i in range(0,4):
+                if i >=2:
+                    vmax += mod_max
+                    vmin += mod_min
+                ax = plt.figure()
+                plt.pcolormesh(t_axe,d_axe,np.log(np.abs(table[:,:,i])),vmax = vmax,vmin = vmin,cmap=cmap,norm="log",shading =  'gouraud')
+                plt.axis('off')   # 去坐标轴
+                plt.xticks([])    # 去 x 轴刻度
+                plt.yticks([])    # 去 y 轴刻度
+                if save:
+                    if not os.path.exists('data/image/'+self.save_name):
+                        os.mkdir('data/image/'+self.save_name)
+                    plt.savefig('data/image/'+self.save_name+'/image_0'+str(i)+'.jpg', dpi=300, bbox_inches='tight', pad_inches = -0.1)
+                if show:
+                    plt.show()
+                plt.close()
 
     def print_list(self,list,title = ['左侧高频信号','右侧高频信号','左侧低频信号','右侧低频信号'],label = [1,2,3,4]):
         plt.figure()
@@ -355,9 +367,14 @@ class FMCW():
             self.analyse(name + '/'+i)
 
     def c_record(self,num_recode):
+
+        self.mkdir()
+        self.name = self.name+'/'+self.name
+        self.path_out = 'data/wav/'+self.name+'.wav'
+
         self.num_recode =num_recode
         #连续录制
-        #前2个self.cycle_num和1个self.inter_num用来消除开始的误差和校正距离；之后没cycle_num一个周期，前inter_num作为间隔
+        #前2个self.num_cycle和1个self.num_inter用来消除开始的误差和校正距离；之后没cycle_num一个周期，前inter_num作为间隔
         p = pyaudio.PyAudio()
         stream = p.open(format=p.get_format_from_width(2),
                         channels=2,
@@ -372,14 +389,14 @@ class FMCW():
         wf.setframerate(self.sample_rate)  # 采样频率设置
  
         data = wf_i.readframes(self.chirp_last)  # 读数据
-        for i in range(0, self.cycle_num*(num_recode+2)+self.inter_num):#多两个num_record用于调整，多一个inter_num
-            if i == self.inter_num:
+        for i in range(0, self.num_cycle*(num_recode+2)+self.num_inter):#多两个num_record用于调整，多一个inter_num
+            if i == self.num_inter:
                 print('现在开始测量，请重复张开嘴，以校正距离')
-            if i == self.inter_num+self.cycle_num:
+            if i == self.num_inter+self.num_cycle:
                 print('现在请准备开始测量')
-            if (i-self.inter_num-2*self.cycle_num) % self.cycle_num  == 0 and i-self.inter_num-2*self.cycle_num>0:
+            if (i-self.num_inter-2*self.num_cycle) % self.num_cycle  == 0 and i-self.num_inter-2*self.num_cycle>0:
                 print('准备')
-            if (i-self.inter_num-2*self.cycle_num) % self.cycle_num == 50 and i-self.inter_num-2*self.cycle_num>0:
+            if (i-self.num_inter-2*self.num_cycle) % self.num_cycle == 50 and i-self.num_inter-2*self.num_cycle>0:
                 print('开始')
             stream.write(data)
             datao = stream.read(self.chirp_last,exception_on_overflow = False)
@@ -388,33 +405,81 @@ class FMCW():
         p.terminate()
         wf.close()
 
-    def c_partition(self,num_recode,offset = [0,0,0,0]):
-        self.num_recode = num_recode
-        #根据测得的连续数据生成图片
-
+    def c_load(self):        
         ## 加载信号,得到self.wave_r_f
-        self.get_data(T = 1)
+        
+        self.get_data()
         self.get_refer_data()
+        self.wave_original = self.wave_r_f
 
-        ## 分割信号,得到(self.num_record,4,self.cycle-num_self.self.inter_num)的信号数组
-        self.wave_total = np.zeros((self.num_recode,4,self.cycle_num*self.chirp_last))
-        for i in range(4):
-            self.wave_total[:,i,:] = np.reshape(self.wave_r_f[i,offset[i]:offset[i]+self.num_recode*self.cycle_num*self.chirp_last],(self.num_recode,self.cycle_num*self.chirp_last))
+    def c_partition(self,num_recode,offset = [0,0,0,0],align = False,num_align = 2):
+        ''' 
+        分割信号,得到(self.num_record,4,self.cycle-num_self.self.num_inter)的信号数组
+            algne: 是否使用c_align自动调整; 
+            num_algin: 用于对齐的信号数，一般越多越准确，需要的时间也越长
+        '''
+        self.num_recode = num_recode
+        self.wave_total = np.zeros((self.num_recode+2,self.num_cycle*self.chirp_last,4))
+        shape = (self.num_recode+2,self.num_cycle*self.chirp_last)
+        long = (self.num_recode+2)*self.num_cycle*self.chirp_last
+        if not align:
+            for i in range(4):
+                self.wave_total[:,:,i] = np.reshape(self.wave_original[offset[i]:offset[i]+long,i],shape)
+        else:
+            #先获得前两条数据
+            for i in range(4):
+                self.wave_total[0:2,:,i] = np.reshape(self.wave_original[offset[i]:offset[i]+num_align*self.num_cycle*self.chirp_last,i],(num_align,self.num_cycle*self.chirp_last))
+            offset += np.mean([self.c_align(self.c_test(0)),self.c_align(self.c_test(0))]).astype(int)#更新offset
+            #重新获得所有数据
+            for i in range(4):
+                self.wave_total[:,:,i] = np.reshape(self.wave_original[offset[i]:offset[i]+long,i],shape)      
 
-
-    def c_test(self,i,image = False):
+    def c_test(self,i,show = False,save = False,save_mdd = False):
         #生成第i幅图,对第i个信号分别分析
-        self.wave_r_f = self.wave_total[i].T
-        m_d_d = self.distance_matrix(image)
-        self.save(m_d_d,'data/npy/'+self.name+str(i)+'.npy')
+        self.save_name = self.name+'/'+self.name+str(i)
+        self.wave_r_f = self.wave_total[i]
+        m_d_d = self.distance_matrix(show = show,save = save)
+        if save_mdd:
+            if not os.path.exists('data/npy/'+self.save_name):
+                os.mkdir('data/npy/'+self.save_name)
+            self.save(m_d_d,'data/npy/'+self.save_name+'/m_d_d'+'.npy')
         return m_d_d
 
-f = FMCW('zhunbei')
-f.c_record(20)
-'''
-f.c_partition(10)
-f.c_test(5,True)
-'''
+    def c_align(self,m_d_d):
+        # 根据一个信号，生成用于对齐的offset数据
+        N =self.chirp_last
+        offset = np.zeros(4,dtype=int)
+        for i in range(0,4):
+            lap_i = np.argmax(m_d_d[:,:,i],axis = 0)
+            if np.mean(lap_i[lap_i>N])-np.mean(lap_i[lap_i<N]) <10:
+                offset[i] = (N-np.mean(lap_i)).astype(int)
+            elif np.shape(lap_i[lap_i>N])>np.shape(lap_i[lap_i<N]):
+                offset[i] = (N-np.mean(lap_i[lap_i>N])).astype(int)
+            else:
+                offset[i] = (N-np.mean(lap_i[lap_i<N])).astype(int)
+        self.offset = offset
+        return offset
+    
+    def c_anadata(self,begin = 2):
+        '''
+        获得m_d_d数组和图像文件
+        begin: 从第几个位置开始获取数据'''
+        # 获得数据
+        self.name = self.name
+        ## 保存m_d_d文件
+        for i in range(begin,self.num_recode+begin):
+            self.c_test(i,show = True,save = True,save_mdd=True)
+        ## 记录offset
+            
+            self.save(self.offset,'data/npy/'+self.name+'/'+str(self.offset)+'.npy')
+
+f = FMCW('测试')
+#f.c_record(20)
+f.c_load()
+f.c_partition(4,align=True)
+#offset = [120,130,180,180]
+f.c_anadata()
+plt.close()
 '''
 f.tran_gray('guanji')
 f.tran_gray('hujiao')
