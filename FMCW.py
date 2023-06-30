@@ -37,7 +37,7 @@ class FMCW():
         self.path_in = "chirp/chirp_lr_17000_18000_15000_16000.wav"                    #测试音频   
         self.name = pathout
         self.save_name = ''
-        self.path_out = 'data/wav/'+pathout+'.wav'                       #录音音频
+        self.path_out = 'data/wav/'+pathout+'/'+pathout+'.wav'                       #录音音频
         ##  读
         self.doc_frame_rate = self.sample_rate       #从文件获得帧率
         self.doc_frame_nums =  0                     #从文件获得帧数
@@ -97,6 +97,7 @@ class FMCW():
     #获得波
     def get_data(self,T = None):
         #获取数据,T是否转置
+        
         wavfile = self.path_out
         wf=wave.open(wavfile,"rb")              #打开wav
         p = pyaudio.PyAudio()                   #创建PyAudio对象
@@ -366,11 +367,11 @@ class FMCW():
             self.name = name+'/'+names[0]
             self.analyse(name + '/'+i)
 
-    def c_record(self,num_recode):
+    def c_record(self,num_recode,input = ''):
 
+        
         self.mkdir()
-        self.name = self.name+'/'+self.name
-        self.path_out = 'data/wav/'+self.name+'.wav'
+        self.path_out = 'data/wav/'+self.name+input+'.wav'
 
         self.num_recode =num_recode
         #连续录制
@@ -396,7 +397,7 @@ class FMCW():
                 print('现在请准备开始测量')
             if (i-self.num_inter-2*self.num_cycle) % self.num_cycle  == 0 and i-self.num_inter-2*self.num_cycle>0:
                 print('准备')
-            if (i-self.num_inter-2*self.num_cycle) % self.num_cycle == 50 and i-self.num_inter-2*self.num_cycle>0:
+            if (i-self.num_inter-2*self.num_cycle) % self.num_cycle == self.num_inter and i-self.num_inter-2*self.num_cycle>0:
                 print('开始')
             stream.write(data)
             datao = stream.read(self.chirp_last,exception_on_overflow = False)
@@ -434,9 +435,9 @@ class FMCW():
             for i in range(4):
                 self.wave_total[:,:,i] = np.reshape(self.wave_original[offset[i]:offset[i]+long,i],shape)      
 
-    def c_test(self,i,show = False,save = False,save_mdd = False):
-        #生成第i幅图,对第i个信号分别分析
-        self.save_name = self.name+'/'+self.name+str(i)
+    def c_test(self,i,show = False,save = False,save_mdd = False,begin = 0):
+        #生成第i幅图,对第i个信号分别分析m,begin为记录信号开始位置
+        self.save_name = self.name+'/'+self.name+str(i+begin)
         self.wave_r_f = self.wave_total[i]
         m_d_d = self.distance_matrix(show = show,save = save)
         if save_mdd:
@@ -453,14 +454,16 @@ class FMCW():
             lap_i = np.argmax(m_d_d[:,:,i],axis = 0)
             if np.mean(lap_i[lap_i>N])-np.mean(lap_i[lap_i<N]) <10:
                 offset[i] = (N-np.mean(lap_i)).astype(int)
-            elif np.shape(lap_i[lap_i>N])>np.shape(lap_i[lap_i<N]):
+                '''
+                elif np.shape(lap_i[lap_i>N])>np.shape(lap_i[lap_i<N]):
                 offset[i] = (N-np.mean(lap_i[lap_i>N])).astype(int)
+                '''
             else:
                 offset[i] = (N-np.mean(lap_i[lap_i<N])).astype(int)
         self.offset = offset
         return offset
     
-    def c_anadata(self,begin = 2):
+    def c_anadata(self,begin = 2,save_begin = 0):
         '''
         获得m_d_d数组和图像文件
         begin: 从第几个位置开始获取数据'''
@@ -468,17 +471,23 @@ class FMCW():
         self.name = self.name
         ## 保存m_d_d文件
         for i in range(begin,self.num_recode+begin):
-            self.c_test(i,show = True,save = True,save_mdd=True)
+            self.c_test(i,show = False,save = True,save_mdd=True,begin = save_begin)
         ## 记录offset
             
             self.save(self.offset,'data/npy/'+self.name+'/'+str(self.offset)+'.npy')
 
-f = FMCW('测试')
-#f.c_record(20)
+f = FMCW('zaijian')
+#f.c_record(40,'40')
+#f.record(1,4,'测试')
+#f.analyse()
+
 f.c_load()
-f.c_partition(4,align=True)
+f.c_partition(40,align=True)
+f.c_test(19,show = True,begin = 0)
+
+
 #offset = [120,130,180,180]
-f.c_anadata()
+f.c_anadata(save_begin=0)
 plt.close()
 '''
 f.tran_gray('guanji')
