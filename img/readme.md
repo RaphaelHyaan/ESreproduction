@@ -21,7 +21,24 @@
 ## 目前阶段取得的成果
 ### 信号录制
     1. 实现了Cross—Correction
-        ![使用np中的相关性结算后得到的结果.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/3f4a3216-36bd-4c91-a03d-1efc0c751a12/%E4%BD%BF%E7%94%A8np%E4%B8%AD%E7%9A%84%E7%9B%B8%E5%85%B3%E6%80%A7%E7%BB%93%E7%AE%97%E5%90%8E%E5%BE%97%E5%88%B0%E7%9A%84%E7%BB%93%E6%9E%9C.png)
+        ![使用np中的相关性结算后得到的结果.png](https://raw.githubusercontent.com/RaphaelHyaan/ESreproduction/main/img/0.012r.png)
+    2. 实现了echo profile
+        - 未差分
+        - 差分后
+### 模型训练
+    - image_nr: 在epochs=7下，平均正确率为：87.09%
+    
+        ![tableresnet18_7_nr_Adam_sch_.jpg](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/79c3d855-40f5-4eeb-ba6a-6775d53412ec/tableresnet18_7_nr_Adam_sch_.jpg)
+    
+    - image_n: 在epochs = 7下，平均正确率为:  81.39%
+    
+        ![tableresnet18_7_n_Adam_sch_.jpg](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/73ee868a-bcc8-4ca2-818b-312ac1448f2f/tableresnet18_7_n_Adam_sch_.jpg)
+    
+    - imaeg_r: 在epochs = 7下，平均正确率为:  86.08%
+    
+        ![tableresnet18_7_r_Adam_sch_.jpg](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/3df6eb22-7777-4005-871a-b784cbf21c9a/tableresnet18_7_r_Adam_sch_.jpg)
+    
+    - image_s: 在epochs = 7下，平均正确率为:  66.07%
 ## 测试集
     - images: 原尺寸 （ 1428 ， 1028 ）的包含【打开】【发送】【关机】【呼叫】【结束】【计时】【开机】【闹钟】【你好】【音量】十个标签的测试集
     - images_s: 在images框架下，将图片尺寸缩小到 （ 119 ， 119 ） 的训练集包含元素不变
