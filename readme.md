@@ -51,9 +51,9 @@
 - images_n: 在images_r的基础上，添加了【再见】【one】【two】【three】【four】【five】的测试集
 - images_nr: 在images_n的基础上，删除了【five】【闹钟】的测试集
 测试集文件可在以下链接查看：
-        链接：https://pan.baidu.com/s/1BxTW2dJ5CbdGodg0fX9j3A?pwd=0zep 
-        提取码：0zep 
---来自百度网盘超级会员V5的分享
+- 链接：https://pan.baidu.com/s/1BxTW2dJ5CbdGodg0fX9j3A?pwd=0zep 
+- 提取码：0zep 
+
 ## 细节
 ### 信号录制部分： FMCW
 1. 间断录制
