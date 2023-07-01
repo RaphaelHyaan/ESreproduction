@@ -210,15 +210,15 @@ class FMCW():
 
         m_d_d = np.diff(m_d,axis = 1)
         for i in range(0,4):
-            '''
+    
             lap_i = np.argmax(m_d_d[:,:,i],axis = 0)
             if np.mean(lap_i[lap_i>N])-np.mean(lap_i[lap_i<N]) <50:
                 lap = np.mean(lap_i).astype(int)
             elif np.shape(lap_i[lap_i>N])>np.shape(lap_i[lap_i<N]):
                 lap = np.mean(lap_i[lap_i>N]).astype(int)
             else:
-                lap = np.mean(lap_i[lap_i<N]).astype(int)'''
-            lap = N
+                lap = np.mean(lap_i[lap_i<N]).astype(int)
+            
             m_d_d_2[:,:,i] = m_d_d[lap-100:lap+101,:,i]
         '''
         for i in range(self.chirp_nums-2):
@@ -327,6 +327,7 @@ class FMCW():
         m_d_d_2 = np.zeros((201,self.chirp_nums-self.remove_nums-1,4))
 
         for i in range(0,4):
+            '''
             lap_i = np.argmax(m_d_d[:,:,i],axis = 0)
             if np.mean(lap_i[lap_i>N])-np.mean(lap_i[lap_i<N]) <50:
                 lap = np.mean(lap_i).astype(int)
@@ -334,6 +335,8 @@ class FMCW():
                 lap = np.mean(lap_i[lap_i>N]).astype(int)
             else:
                 lap = np.mean(lap_i[lap_i<N]).astype(int)
+            '''
+            lap = N
             m_d_d_2[:,:,i] = m_d_d[lap-100:lap+101,:,i]
 
         #self.print_table(t_axe,dn_axe,m_d_d[:,:],11,10,save = False,show = True)
@@ -356,7 +359,7 @@ class FMCW():
             self.get_data()
             self.get_refer_data()
             
-            m_d_d = self.distance_matrix(image)
+            m_d_d = self.distance_matrix()
             self.save(m_d_d,'data/npy/'+self.name+'.npy')
 
     def tran_gray(self,name):
@@ -476,18 +479,24 @@ class FMCW():
             
             self.save(self.offset,'data/npy/'+self.name+'/'+str(self.offset)+'.npy')
 
-f = FMCW('zaijian')
-#f.c_record(40,'40')
-#f.record(1,4,'测试')
-#f.analyse()
+f = FMCW('five')
+
+f.c_record(40)
+#f.record(1,40,'huijia')
+#f.analyse('zaijian/zaijian46/')
+#f.tran_gray('zaijian')
+
 
 f.c_load()
 f.c_partition(40,align=True)
-f.c_test(19,show = True,begin = 0)
+f.c_test(4,show = True,begin = 0)
+f.c_test(14,show = True,begin = 0)
+f.c_test(24,show = True,begin = 0)
+f.c_test(34,show = True,begin = 0)
 
 
 #offset = [120,130,180,180]
-f.c_anadata(save_begin=0)
+#f.c_anadata(save_begin=0)
 plt.close()
 '''
 f.tran_gray('guanji')
