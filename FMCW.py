@@ -479,9 +479,9 @@ class FMCW():
             
             self.save(self.offset,'data/npy/'+self.name+'/'+str(self.offset)+'.npy')
 
-f = FMCW('five')
+f = FMCW('one')
 
-f.c_record(40)
+#f.c_record(40)
 #f.record(1,40,'huijia')
 #f.analyse('zaijian/zaijian46/')
 #f.tran_gray('zaijian')
@@ -489,14 +489,15 @@ f.c_record(40)
 
 f.c_load()
 f.c_partition(40,align=True)
+'''
 f.c_test(4,show = True,begin = 0)
 f.c_test(14,show = True,begin = 0)
 f.c_test(24,show = True,begin = 0)
 f.c_test(34,show = True,begin = 0)
-
+'''
 
 #offset = [120,130,180,180]
-#f.c_anadata(save_begin=0)
+f.c_anadata(save_begin=0)
 plt.close()
 '''
 f.tran_gray('guanji')

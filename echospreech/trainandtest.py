@@ -5,11 +5,11 @@ from torchvision import transforms
 from dataset import MNISTDataset
 from models.resnet import resnet50
 from models.resnet18 import resnet18
-from models.lenet_3 import LeNet
+from models.lenet_2 import LeNet
 import numpy as np
 import matplotlib.pyplot as plt
 
-num_classe = 7
+num_classe = 10
 
 # 定义随机乘以随机因子的变换
 transform_train = transforms.Compose([
@@ -30,18 +30,18 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("将使用%s训练" %(device))
 #device = torch.device('cpu') 
 
-train_dataset = MNISTDataset('echospreech/images_r', train=True, transform=transform_train)
+train_dataset = MNISTDataset('echospreech/images', train=True, transform=transform_train)
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True)
-test_dataset = MNISTDataset('echospreech/images_r', train=False, transform=transform_test)
+test_dataset = MNISTDataset('echospreech/images', train=False, transform=transform_test)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=16, shuffle=False)
 map = train_dataset.label
 names = [map[key] for key in range(num_classe)]
 
 # 模型
 #model = resnet50(num_classes=10).to(device)
-#model = LeNet().to(device)
+model = LeNet().to(device)
 #model.load_state_dict(torch.load('echospreech/ckpt/es_lenet_1403.pth', map_location=device))
-model = resnet18(num_classes=num_classe).to(device)
+#model = resnet18(num_classes=num_classe).to(device)
 
 
 
@@ -124,9 +124,10 @@ def train(foi,name,epochs = 10):
 
 
 for i in range(10):
-    name = 'resnet18_10_r_Adam_sch_'
-    model = resnet18(num_classes=num_classe).to(device)
-    table1,c1 = train(i,name,10)
+    name = 'LeNet_2_7_o_Adam_sch_'
+    #model = resnet18(num_classes=num_classe).to(device)
+    model = LeNet().to(device)
+    table1,c1 = train(i,name,7)
     table += table1
     c += c1
     plt.figure()

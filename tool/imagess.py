@@ -4,7 +4,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 
 def images(root_dir):
-    resize = transforms.Resize((119,1028))
+    resize = transforms.Resize((119,119))
     for label in os.listdir(root_dir):
         label_dir = os.path.join(root_dir, label)
         if os.path.isdir(label_dir):
@@ -16,4 +16,4 @@ def images(root_dir):
                         image = Image.open(image_path).convert('L')
                         image = resize(image)
                         image.save(image_path)
-images('echospreech/images_l/train')
+images('echospreech/images_r/test')
