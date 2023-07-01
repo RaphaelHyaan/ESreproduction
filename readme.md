@@ -50,9 +50,9 @@
 - images_r: 在images_s的基础上，删除了部分元素的测试集，仅保留【打开】【关机】【结束】【开机】【闹钟】【你好】【音量】
 - images_n: 在images_r的基础上，添加了【再见】【one】【two】【three】【four】【five】的测试集
 - images_nr: 在images_n的基础上，删除了【five】【闹钟】的测试集
-测试集文件可在以下链接查看：
-- 链接：https://pan.baidu.com/s/1BxTW2dJ5CbdGodg0fX9j3A?pwd=0zep 
-- 提取码：0zep 
+- 测试集文件可在以下链接查看：
+        - 链接：https://pan.baidu.com/s/1BxTW2dJ5CbdGodg0fX9j3A?pwd=0zep 
+        - 提取码：0zep 
 
 ## 细节
 ### 信号录制部分： FMCW
