@@ -1,0 +1,14 @@
+**/images**/
+**/data/
+echospreech\images/
+echospreech\images\test/
+echospreech\images\train/
+echospreech\images_n/
+echospreech\images_nr/
+echospreech\images_r/
+echospreech\images_s/
+echospreech\images_w/
+echospreech\images_w2/
+echospreech\__pycache__/
+data/
+data/
