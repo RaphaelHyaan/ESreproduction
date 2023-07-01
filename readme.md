@@ -24,9 +24,9 @@
         ![模拟信号.png](https://raw.githubusercontent.com/RaphaelHyaan/ESreproduction/main/img/0.012r.png)
         ![实际信号.png](https://raw.githubusercontent.com/RaphaelHyaan/ESreproduction/main/img/%E4%BD%BF%E7%94%A8np%E4%B8%AD%E7%9A%84%E7%9B%B8%E5%85%B3%E6%80%A7%E7%BB%93%E7%AE%97%E5%90%8E%E5%BE%97%E5%88%B0%E7%9A%84%E7%BB%93%E6%9E%9C.png)
 2. 实现了echo profile
-        - 未差分
+- 未差分
         ![未差分.png](https://raw.githubusercontent.com/RaphaelHyaan/ESreproduction/main/img/%E6%9C%AA%E6%BB%A4%E6%B3%A2.png)
-        - 差分后
+- 差分后
         ![差分后.png](https://raw.githubusercontent.com/RaphaelHyaan/ESreproduction/main/img/%E6%97%A0%E5%A3%B0%E8%AF%9D%E8%AF%AD%201%202.png)
 ### 模型训练
 - image_nr: 在epochs=7下，平均正确率为：87.09%

@@ -175,7 +175,7 @@ class FMCW():
         return
 
     #使用矩阵方法计算cc
-    def cc_matrice(self,foi):
+    def c_corre(self,foi):
         #尝试使用矩阵方式获得lag
         N = self.chirp_last
         vtx = self.wave_t_f[0:N,:]
@@ -197,7 +197,7 @@ class FMCW():
 
         l_lap = np.zeros((self.chirp_nums-self.remove_nums,4))
         for i in range(self.chirp_nums-self.remove_nums):
-            m_r[:,i,:],l_lap[i,:] = self.cc_matrice(i+self.remove_nums)
+            m_r[:,i,:],l_lap[i,:] = self.c_corre(i+self.remove_nums)
         m_d = m_r*self.c/(2*self.sample_rate)
         
         t_axe = np.linspace(0,(self.chirp_nums-self.remove_nums)*N/self.sample_rate,self.chirp_nums-self.remove_nums-1)
